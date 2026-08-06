@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Seatly.API/Seatly.API.csproj" />
+    <Project Path="src/Seatly.Application/Seatly.Application.csproj" />
+    <Project Path="src/Seatly.Domain/Seatly.Domain.csproj" />
+    <Project Path="src/Seatly.Infrastructure/Seatly.Infrastructure.csproj" />
+  </Folder>
+</Solution>
