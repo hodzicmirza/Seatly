@@ -1,6 +1,6 @@
 ﻿namespace Seatly.Domain.ValueObjects;
 
-public record Money(decimal Ammout, string Currency = "BAM")
+public record Money(decimal Amount, string Currency = "BAM")
 {
     public static Money operator +(Money a, Money b)
     {
@@ -11,14 +11,14 @@ public record Money(decimal Ammout, string Currency = "BAM")
 
         return a with
         {
-            Ammout = a.Ammout + b.Ammout,
+            Amount = a.Amount + b.Amount,
         };
     }
 
     public static Money operator *(Money a, decimal multiplier)
     {
-        return a with { Ammout = Math.Round(a.Ammout * multiplier, 2) };
+        return a with { Amount = Math.Round(a.Amount * multiplier, 2) };
     }
 
-    public override string ToString() => $"{Ammout:F2} {Currency}";
+    public override string ToString() => $"{Amount:F2} {Currency}";
 }

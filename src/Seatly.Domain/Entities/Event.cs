@@ -1,4 +1,5 @@
-﻿using Seatly.Domain.Exceptions;
+﻿using Seatly.Domain.Enums;
+using Seatly.Domain.Exceptions;
 using Seatly.Domain.ValueObjects;
 
 namespace Seatly.Domain.Entities;
@@ -13,6 +14,7 @@ public abstract class Event
     public Money BasePrice { get; private set; } = null!;
     public int TotalSeats { get; private set; }
     public List<SeatCategory> SeatCategories { get; private set; } = new();
+    public EventType EventType { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
     protected Event() { } // contructor for database
@@ -24,7 +26,8 @@ public abstract class Event
         Address location,
         Money basePrice,
         int totalSeats,
-        List<SeatCategory> categories
+        List<SeatCategory> categories,
+        EventType eventType
     )
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -55,6 +58,7 @@ public abstract class Event
         this.BasePrice = basePrice;
         this.TotalSeats = totalSeats;
         this.SeatCategories = categories;
+        this.EventType = eventType;
         this.CreatedAt = DateTime.UtcNow;
     }
 

@@ -1,3 +1,4 @@
+using Seatly.Domain.Enums;
 using Seatly.Domain.ValueObjects;
 
 namespace Seatly.Domain.Entities;
@@ -20,7 +21,16 @@ public class Conference : Event
         string organizer,
         string? keynoteSpeaker = null
     )
-        : base(name, description, date, location, basePrice, totalSeats, categories)
+        : base(
+            name,
+            description,
+            date,
+            location,
+            basePrice,
+            totalSeats,
+            categories,
+            EventType.Conference
+        )
     {
         if (string.IsNullOrWhiteSpace(organizer))
         {

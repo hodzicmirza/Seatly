@@ -1,0 +1,13 @@
+using Seatly.Domain.Entities;
+
+namespace Seatly.Domain.Interfaces;
+
+public interface IBookingRepository
+{
+    Task<Booking?> GetByIdAsync(Guid id);
+    Task<IEnumerable<Booking>> GetByUserIdAsync(Guid userId);
+    Task<IEnumerable<Booking>> GetByEventIdAsync(Guid eventId);
+    Task<int> GetBookedSeatsCountAsync(Guid eventId);
+    Task AddAsync(Booking booking);
+    Task UpdateAsync(Booking booking);
+}

@@ -1,3 +1,6 @@
+using Seatly.Domain.Enums;
+using Seatly.Domain.Exceptions;
+
 namespace Seatly.Domain.Entities;
 
 public class User
@@ -6,12 +9,17 @@ public class User
     public string SupabaseUserId { get; private set; } = null!;
     public string FullName { get; private set; } = null!;
     public string Email { get; private set; } = null!;
-    public string Role { get; private set; } = null!; // korisiti enum kasnije
+    public UserRole Role { get; private set; }
     public DateTime CreatetAd { get; private set; }
 
     private User() { }
 
-    public User(string supabaseUserId, string fullName, string email, string role)
+    public User(
+        string supabaseUserId,
+        string fullName,
+        string email,
+        UserRole role = UserRole.Customer
+    )
     {
         if (string.IsNullOrWhiteSpace(supabaseUserId))
         {
@@ -35,4 +43,18 @@ public class User
         this.FullName = fullName ?? throw new ArgumentNullException(nameof(fullName));
         this.Email = email ?? throw new ArgumentNullException(nameof(email));
     }
+
+    public void PromoteTo(UserRole newUserRole)
+    {
+        if (newUserRole == UserRole.Customer)
+        {
+            throw new ArgumentException("Cannot demote to Customer.");
+        }
+
+        this.Role = newUserRole;
+    }
+
+    public bool IsAdmin => this.Role == UserRole.Admin;
+    public bool IsOrganizer => this.Role == UserRole.Organizer;
+    public bool CanCreateEvents => this.Role == UserRole.Admin || this.Role == UserRole.Organizer;
 }

@@ -1,4 +1,5 @@
-﻿using Seatly.Domain.ValueObjects;
+﻿using Seatly.Domain.Enums;
+using Seatly.Domain.ValueObjects;
 
 namespace Seatly.Domain.Entities;
 
@@ -20,7 +21,16 @@ public class Concert : Event
         string headliner,
         string? supportAct = null
     )
-        : base(name, description, date, location, basePrice, totalSeats, categories)
+        : base(
+            name,
+            description,
+            date,
+            location,
+            basePrice,
+            totalSeats,
+            categories,
+            EventType.Concert
+        )
     {
         if (string.IsNullOrWhiteSpace(headliner))
         {
