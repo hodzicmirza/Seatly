@@ -22,7 +22,7 @@ export default function CreateEventPage() {
     country: "",
     basePrice: 50,
     totalSeats: 100,
-    categories: [{ name: "Standard", multiplier: 1.0 }],
+    categories: [{ name: "Standard", multiplier: 1.0, seatsCount: 100 }],
     eventType: 1,
     headliner: "",
     supportAct: "",
@@ -45,10 +45,14 @@ export default function CreateEventPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const allocatedSeats = form.categories.reduce((acc, c) => acc + (Number(c.seatsCount) || 0), 0);
+  const unallocatedSeats = form.totalSeats - allocatedSeats;
+
   const addCategory = () => {
+    const defaultSeats = unallocatedSeats > 0 ? unallocatedSeats : 0;
     setForm((prev) => ({
       ...prev,
-      categories: [...prev.categories, { name: "", multiplier: 1.0 }],
+      categories: [...prev.categories, { name: "", multiplier: 1.0, seatsCount: defaultSeats }],
     }));
   };
 
@@ -72,6 +76,15 @@ export default function CreateEventPage() {
     }));
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (allocatedSeats !== form.totalSeats) {
+      toast.error(`Zbir mjesta po kategorijama (${allocatedSeats}) mora biti jednak ukupnom kapacitetu (${form.totalSeats})! Broj nedodijeljenih mjesta: ${unallocatedSeats}`);
+      return;
+    }
+    mutation.mutate(form);
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-12">
       <Button variant="ghost" size="sm" type="button" onClick={() => navigate("/")}>
@@ -84,7 +97,7 @@ export default function CreateEventPage() {
             <div>
               <CardTitle className="text-2xl font-bold">Create New Event</CardTitle>
               <CardDescription className="mt-1">
-                Fill in the event details, ticket categories, and location to publish a new event.
+                Fill in the event details, ticket categories with seat capacities, and venue location.
               </CardDescription>
             </div>
             <Badge variant="secondary" className="px-3 py-1 text-xs">
@@ -93,13 +106,7 @@ export default function CreateEventPage() {
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <form
-            className="space-y-6"
-            onSubmit={(e) => {
-              e.preventDefault();
-              mutation.mutate(form);
-            }}
-          >
+          <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
               <h3 className="font-semibold text-sm text-primary uppercase tracking-wider flex items-center gap-1.5">
                 <MdEvent className="text-lg" /> General Information
@@ -145,7 +152,7 @@ export default function CreateEventPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="date">Date & Time</Label>
+                  <Label htmlFor="date">Date & Time *</Label>
                   <Input
                     id="date"
                     type="datetime-local"
@@ -160,7 +167,7 @@ export default function CreateEventPage() {
                   </p>
                 </div>
                 <div>
-                  <Label htmlFor="totalSeats">Total Capacity (Seats) *</Label>
+                  <Label htmlFor="totalSeats">Total Capacity (Max Seats) *</Label>
                   <Input
                     id="totalSeats"
                     type="number"
@@ -296,10 +303,10 @@ export default function CreateEventPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-sm text-primary uppercase tracking-wider flex items-center gap-1.5">
-                    <MdConfirmationNumber className="text-lg" /> Seat Categories & Price Multipliers
+                    <MdConfirmationNumber className="text-lg" /> Seat Categories & Seat Distribution
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Define seating zones (e.g. Standard, VIP) and their price multiplier relative to Base Price ({form.basePrice || 0} BAM).
+                    Specify the number of seats allocated to each category. Total seats across categories must equal Total Capacity ({form.totalSeats}).
                   </p>
                 </div>
                 <Button type="button" variant="outline" size="sm" onClick={addCategory} className="rounded-lg">
@@ -307,36 +314,75 @@ export default function CreateEventPage() {
                 </Button>
               </div>
 
+              {/* Unallocated Seats Status Banner */}
+              <div
+                className={`p-3.5 rounded-xl border text-xs sm:text-sm font-semibold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 transition-colors ${
+                  unallocatedSeats === 0
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                    : unallocatedSeats > 0
+                    ? "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                    : "bg-red-50 text-red-800 border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800"
+                }`}
+              >
+                <div>
+                  Ukupno dodijeljeno: <strong>{allocatedSeats}</strong> / {form.totalSeats} mjesta
+                </div>
+                <div>
+                  {unallocatedSeats === 0 ? (
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
+                      ✓ Sva mjesta su dodijeljena!
+                    </span>
+                  ) : unallocatedSeats > 0 ? (
+                    <span className="text-amber-800 dark:text-amber-300 font-bold">
+                      ⚠️ Broj nedodijeljenih mjesta: <strong>{unallocatedSeats}</strong>
+                    </span>
+                  ) : (
+                    <span className="text-red-700 dark:text-red-400 font-bold">
+                      ❌ Prekoračenje kapaciteta za {Math.abs(unallocatedSeats)} mjesta!
+                    </span>
+                  )}
+                </div>
+              </div>
+
               <div className="bg-muted/40 border p-3 rounded-xl text-xs space-y-1">
                 <div className="flex items-center gap-1 font-semibold text-foreground">
-                  <MdHelpOutline className="text-primary text-sm" /> How do Seat Multipliers work?
+                  <MdHelpOutline className="text-primary text-sm" /> Multipliers & Base Price
                 </div>
                 <p className="text-muted-foreground leading-relaxed">
-                  <strong>1.0x</strong> = Standard Base Price ({(form.basePrice * 1.0).toFixed(2)} BAM) |{" "}
-                  <strong>1.5x</strong> = VIP Zone (+50% = {(form.basePrice * 1.5).toFixed(2)} BAM) |{" "}
-                  <strong>2.0x</strong> = Front Row (+100% = {(form.basePrice * 2.0).toFixed(2)} BAM)
+                  <strong>1.0x</strong> = Base Price ({(form.basePrice * 1.0).toFixed(2)} BAM) |{" "}
+                  <strong>1.5x</strong> = VIP Zone ({(form.basePrice * 1.5).toFixed(2)} BAM)
                 </p>
               </div>
 
               <div className="space-y-3">
-                <div className="grid grid-cols-12 gap-3 text-xs font-semibold text-muted-foreground px-1">
-                  <div className="col-span-6">Category Name</div>
-                  <div className="col-span-4">Price Multiplier (Multiplier × Base)</div>
-                  <div className="col-span-2 text-right">Action</div>
+                <div className="grid grid-cols-12 gap-2 sm:gap-3 text-xs font-semibold text-muted-foreground px-1">
+                  <div className="col-span-4">Category Name</div>
+                  <div className="col-span-3">Seats (Broj mjesta)</div>
+                  <div className="col-span-4">Price Multiplier</div>
+                  <div className="col-span-1 text-right">Action</div>
                 </div>
 
                 {form.categories.map((cat, i) => {
                   const finalPrice = (form.basePrice || 0) * (cat.multiplier || 1);
                   return (
-                    <div key={i} className="grid grid-cols-12 gap-3 items-center bg-background border p-2.5 rounded-xl">
-                      <div className="col-span-6">
+                    <div key={i} className="grid grid-cols-12 gap-2 sm:gap-3 items-center bg-background border p-2.5 rounded-xl">
+                      <div className="col-span-4">
                         <Input
-                          placeholder="e.g. Standard, VIP, Fan Pit"
+                          placeholder="e.g. Standard, VIP"
                           value={cat.name}
                           onChange={(e) => updateCategory(i, "name", e.target.value)}
                         />
                       </div>
-                      <div className="col-span-4 flex items-center gap-2">
+                      <div className="col-span-3">
+                        <Input
+                          type="number"
+                          min={1}
+                          placeholder="Mjesta"
+                          value={cat.seatsCount || ""}
+                          onChange={(e) => updateCategory(i, "seatsCount", Number(e.target.value))}
+                        />
+                      </div>
+                      <div className="col-span-4 flex items-center gap-1.5">
                         <Input
                           type="number"
                           step="0.1"
@@ -344,20 +390,20 @@ export default function CreateEventPage() {
                           placeholder="1.0"
                           value={cat.multiplier}
                           onChange={(e) => updateCategory(i, "multiplier", Number(e.target.value))}
-                          className="w-20"
+                          className="w-16 sm:w-20"
                         />
-                        <span className="text-xs font-semibold text-foreground bg-muted px-2 py-1 rounded">
+                        <span className="text-[11px] sm:text-xs font-semibold text-foreground bg-muted px-1.5 sm:px-2 py-1 rounded truncate">
                           = {finalPrice.toFixed(2)} BAM
                         </span>
                       </div>
-                      <div className="col-span-2 text-right">
+                      <div className="col-span-1 text-right">
                         {form.categories.length > 1 && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => removeCategory(i)}
-                            className="text-destructive hover:bg-destructive/10"
+                            className="text-destructive hover:bg-destructive/10 px-2"
                           >
                             <MdDelete className="text-base" />
                           </Button>
@@ -372,7 +418,7 @@ export default function CreateEventPage() {
             <Button
               type="submit"
               className="w-full text-base py-6 font-semibold rounded-xl shadow-md mt-6"
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || unallocatedSeats !== 0}
             >
               {mutation.isPending ? "Publishing Event..." : "Publish Event"}
             </Button>

@@ -16,4 +16,4 @@ public record EventResponse(
     List<CategoryResponse> Categories
 );
 
-public record CategoryResponse(string Name, decimal PriceMultiplier, decimal FinalPrice);
+public record CategoryResponse(string Name, decimal PriceMultiplier, decimal FinalPrice, int SeatsCount = 0);

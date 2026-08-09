@@ -1,3 +1,3 @@
-﻿namespace Seatly.Domain.ValueObjects;
+namespace Seatly.Domain.ValueObjects;
 
-public record SeatCategory(string Name, decimal PriceMultiplier);
+public record SeatCategory(string Name, decimal PriceMultiplier, int SeatsCount = 0);

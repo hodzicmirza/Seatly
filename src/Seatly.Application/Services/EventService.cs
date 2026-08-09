@@ -40,8 +40,14 @@ public class EventService : IEventService
         {
             var eventDate = DateTime.SpecifyKind(request.Date, DateTimeKind.Utc);
             var address = new Address(request.Street, request.City, request.Country);
+            var totalCategorySeats = request.Categories.Sum(c => c.SeatsCount);
+            if (totalCategorySeats > 0 && totalCategorySeats != request.TotalSeats)
+            {
+                return Result<EventResponse>.Failure($"Suma mjesta po kategorijama ({totalCategorySeats}) mora biti jednaka ukupnom kapacitetu događaja ({request.TotalSeats}).");
+            }
+
             var categories = request
-                .Categories.Select(c => new SeatCategory(c.Name, c.Multiplier))
+                .Categories.Select(c => new SeatCategory(c.Name, c.Multiplier, c.SeatsCount))
                 .ToList();
             var money = new Money(request.BasePrice);
 
@@ -154,8 +160,14 @@ public class EventService : IEventService
             @event.UpdateDetails(request.Name, request.Description, eventDate, address, money, request.TotalSeats);
             if (request.Categories != null && request.Categories.Any())
             {
+                var totalCategorySeats = request.Categories.Sum(c => c.SeatsCount);
+                if (totalCategorySeats > 0 && totalCategorySeats != request.TotalSeats)
+                {
+                    return Result<EventResponse>.Failure($"Suma mjesta po kategorijama ({totalCategorySeats}) mora biti jednaka ukupnom kapacitetu događaja ({request.TotalSeats}).");
+                }
+
                 var categories = request.Categories
-                    .Select(c => new SeatCategory(c.Name, c.Multiplier))
+                    .Select(c => new SeatCategory(c.Name, c.Multiplier, c.SeatsCount))
                     .ToList();
                 @event.UpdateSeatCategories(categories);
             }
@@ -213,7 +225,8 @@ public class EventService : IEventService
                 .SeatCategories.Select(c => new CategoryResponse(
                     c.Name,
                     c.PriceMultiplier,
-                    @event.CalculatePrice(c).Amount
+                    @event.CalculatePrice(c).Amount,
+                    c.SeatsCount
                 ))
                 .ToList()
         );

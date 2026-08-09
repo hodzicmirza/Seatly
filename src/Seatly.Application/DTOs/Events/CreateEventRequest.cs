@@ -19,4 +19,4 @@ public record CreateEventRequest(
     string? KeynoteSpeaker // samo za Conference
 );
 
-public record SeatCategoryDto(string Name, decimal Multiplier);
+public record SeatCategoryDto(string Name, decimal Multiplier, int SeatsCount = 0);

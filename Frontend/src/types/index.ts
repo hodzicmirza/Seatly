@@ -2,6 +2,7 @@ export interface CategoryResponse {
   name: string;
   priceMultiplier: number;
   finalPrice: number;
+  seatsCount: number;
 }
 
 export interface EventResponse {
@@ -27,7 +28,7 @@ export interface CreateEventRequest {
   country: string;
   basePrice: number;
   totalSeats: number;
-  categories: { name: string; multiplier: number }[];
+  categories: { name: string; multiplier: number; seatsCount: number }[];
   eventType: number;
   headliner?: string;
   supportAct?: string;
