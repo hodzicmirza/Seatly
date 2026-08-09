@@ -144,14 +144,9 @@ public class Program
                 policy =>
                 {
                     policy
-                        .WithOrigins(
-                            "http://localhost:3000",
-                            "http://localhost:5173",
-                            "http://localhost:5174"
-                        )
+                        .AllowAnyOrigin()
                         .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials();
+                        .AllowAnyMethod();
                 }
             );
         });
@@ -179,11 +174,19 @@ public class Program
         app.UseAuthorization();
         app.MapControllers();
 
-        // Auto-migrate database
+        // Safe database initialization
         using (var scope = app.Services.CreateScope())
         {
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Database.EnsureCreated();
+            try
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                db.Database.EnsureCreated();
+                app.Logger.LogInformation("Database initialized successfully.");
+            }
+            catch (Exception ex)
+            {
+                app.Logger.LogError(ex, "Could not initialize database on startup. Ensure ConnectionStrings__DefaultConnection environment variable is set on Render.");
+            }
         }
 
         app.Logger.LogInformation("Seatly API v1.0 running successfully.");
