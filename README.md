@@ -8,6 +8,15 @@
 
 ---
 
+<p align="center">
+  <img src="main_page.webp" alt="Seatly Main Page" width="100%" />
+</p>
+<p align="center">
+  <img src="my_bookings_page.webp" alt="Seatly My Bookings Page" width="100%" />
+</p>
+
+---
+
 ## 1. Project Overview
 
 **Seatly** is a state-of-the-art, full-stack event management and real-time ticket booking web application. It enables organizers and administrators to create and update events, manage ticket categories and seat capacities, while providing customers with a seamless ticket purchasing experience featuring dynamic discount strategies and digital QR code email tickets.
