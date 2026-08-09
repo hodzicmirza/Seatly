@@ -101,26 +101,17 @@ Encapsulates object instantiation logic for Concert and Conference types based o
 
 ### A. Backend Deployment (Render & Docker)
 * **Containerization:** The .NET 10 Web API is containerized using a multi-stage Dockerfile (`mcr.microsoft.com/dotnet/sdk:10.0` for build, `aspnet:10.0` for runtime) exposing port `8080`.
-* **Database Connectivity (IPv4 Session Pooling):** Render free instances support outbound IPv4 traffic. Connection to Supabase PostgreSQL is established via Supabase Session Pooler (`aws-1-eu-west-1.pooler.supabase.com:5432`) to resolve IPv6 routing limitations.
-* **Environment Configuration:**
-  - `ConnectionStrings__DefaultConnection`: Encrypted connection string with SSL Mode enabled.
-  - `Supabase__Authority` & `Supabase__ValidIssuer`: Supabase JWT Token verification endpoint.
-  - `Supabase__ValidAudience`: `authenticated`.
+* **Database Connectivity (IPv4 Session Pooling):** Render free instances support outbound IPv4 traffic. Connection to Supabase PostgreSQL is established via Supabase Session Pooler to resolve IPv6 routing limitations.
 
 ### B. Frontend Deployment (Vercel)
 * **Framework:** React 18 + Vite SPA deployed on Vercel Edge Network.
 * **Single Page Application Rewrites:** `vercel.json` maps all incoming routes `/(.*)` to `/index.html` to allow client-side routing via React Router DOM.
-* **Environment Variables:**
-  - `VITE_SUPABASE_URL`: Supabase project API URL.
-  - `VITE_SUPABASE_ANON_KEY`: Supabase client-side anonymous key.
-  - `VITE_API_BASE_URL`: Production backend endpoint (`https://seatlybackend.onrender.com/api`).
 
 ### C. Custom Domain & Cloudflare DNS Management
-* **Custom Domain:** `https://seatly.hodzicmirza.com` managed via Cloudflare DNS.
+* **Custom Domain:** Managed via Cloudflare DNS.
 * **DNS Records:** CNAME Flattening pointing subdomain traffic to Vercel production edge servers (`cname.vercel-dns.com`).
 * **Supabase OAuth URL Configuration:**
-  - `Site URL`: Set to `https://seatly.hodzicmirza.com`.
-  - `Redirect URLs`: Whitelisted `https://seatly.hodzicmirza.com/**`, `https://seatly-opal.vercel.app/**`, and local dev endpoints to ensure seamless OAuth (Google/GitHub) authentication flows.
+  - `Site URL` and `Redirect URLs` configured to ensure seamless OAuth (Google/GitHub) authentication flows.
 
 ---
 
