@@ -2,7 +2,7 @@
 
 > Author / Student: Mirza Hodžić  
 > Course Project: Event Management & Ticket Booking System  
-> Tech Stack: .NET 10 C#, Entity Framework Core, PostgreSQL, Supabase Auth, React (Vite), Resend API, xUnit  
+> Tech Stack: .NET 10 C#, Entity Framework Core, PostgreSQL, Supabase Auth, React (Vite), Resend API, GitHub Actions, xUnit  
 
 ---
 
@@ -15,6 +15,7 @@ Key Features:
 * Base64 QR code generation for digital event tickets.
 * Automated email ticket dispatch via Resend API with embedded QR code confirmation.
 * Automated background service for releasing expired pending bookings.
+* 24/7 keep-alive automation via GitHub Actions to eliminate Render free tier cold starts.
 * High-performance reads via In-Memory Caching and PostgreSQL B-Tree database indexes.
 * Fully containerized Docker deployment on Render, Vercel frontend hosting, and Cloudflare DNS management.
 
@@ -32,6 +33,7 @@ Seatly Solution Structure:
  │    ├── Seatly.Infrastructure (Data: AppDbContext, Repositories, QrCode, Resend Email)
  │    └── Seatly.API            (Entry Point: Controllers, Middleware, BackgroundServices)
  ├── Frontend/                  (React 18 + Vite + TailwindCSS SPA)
+ ├── .github/workflows/         (GitHub Actions: 24/7 Render Keep-Alive Workflow)
  └── tests/
       └── Seatly.Tests          (xUnit Unit Tests)
 ```
@@ -104,6 +106,7 @@ Encapsulates object instantiation logic for Concert and Conference types based o
 * **Containerization:** The .NET 10 Web API is containerized using a multi-stage Dockerfile (`mcr.microsoft.com/dotnet/sdk:10.0` for build, `aspnet:10.0` for runtime) exposing port `8080`.
 * **Database Connectivity (IPv4 Session Pooling):** Render free instances support outbound IPv4 traffic. Connection to Supabase PostgreSQL is established via Supabase Session Pooler to resolve IPv6 routing limitations.
 * **Email Service:** Integrates Resend API for sending HTML booking confirmation emails containing embedded Base64 QR code tickets.
+* **24/7 Availability & Cold-Start Prevention:** Render free instances spin down after 15 minutes of inactivity. A scheduled GitHub Actions workflow (`.github/workflows/keep_alive.yml`) runs every 10 minutes to issue HTTP GET requests against the backend health endpoint, preventing cold starts and guaranteeing instant response times.
 
 ### B. Frontend Deployment (Vercel)
 * **Framework:** React 18 + Vite SPA deployed on Vercel Edge Network.

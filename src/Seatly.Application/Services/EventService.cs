@@ -78,8 +78,12 @@ public class EventService : IEventService
         if (!_cache.TryGetValue(AllEventsCacheKey, out IEnumerable<EventResponse>? cachedEvents) || cachedEvents == null)
         {
             var events = await _eventRepository.GetAllAsync();
-            var tasks = events.Select(MapToResponseAsync);
-            cachedEvents = await Task.WhenAll(tasks);
+            var responsesList = new List<EventResponse>();
+            foreach (var @event in events)
+            {
+                responsesList.Add(await MapToResponseAsync(@event));
+            }
+            cachedEvents = responsesList;
 
             // Store in IMemoryCache with 30s TTL and 10s sliding expiration
             var cacheEntryOptions = new MemoryCacheEntryOptions()
@@ -125,8 +129,11 @@ public class EventService : IEventService
         var utcTo = to.HasValue ? DateTime.SpecifyKind(to.Value, DateTimeKind.Utc) : (DateTime?)null;
 
         var events = await _eventRepository.SearchAsync(name, utcFrom, utcTo, eventType);
-        var tasks = events.Select(MapToResponseAsync);
-        var responses = await Task.WhenAll(tasks);
+        var responses = new List<EventResponse>();
+        foreach (var @event in events)
+        {
+            responses.Add(await MapToResponseAsync(@event));
+        }
         return Result<IEnumerable<EventResponse>>.Success(responses);
     }
 

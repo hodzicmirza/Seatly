@@ -1,0 +1,15 @@
+name: Render Backend Keep-Alive
+
+on:
+  schedule:
+    # Runs every 10 minutes to prevent Render free instance from spinning down
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Backend Health Endpoint
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" https://seatlybackend.onrender.com/api/events
