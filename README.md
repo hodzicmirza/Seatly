@@ -106,7 +106,26 @@ Encapsulates object instantiation logic for Concert and Conference types based o
 * **Containerization:** The .NET 10 Web API is containerized using a multi-stage Dockerfile (`mcr.microsoft.com/dotnet/sdk:10.0` for build, `aspnet:10.0` for runtime) exposing port `8080`.
 * **Database Connectivity (IPv4 Session Pooling):** Render free instances support outbound IPv4 traffic. Connection to Supabase PostgreSQL is established via Supabase Session Pooler to resolve IPv6 routing limitations.
 * **Email Service:** Integrates Resend API for sending HTML booking confirmation emails containing embedded Base64 QR code tickets.
-* **24/7 Availability & Cold-Start Prevention:** Render free instances spin down after 15 minutes of inactivity. A scheduled GitHub Actions workflow (`.github/workflows/keep_alive.yml`) runs every 10 minutes to issue HTTP GET requests against the backend health endpoint, preventing cold starts and guaranteeing instant response times.
+* **24/7 Availability & Cold-Start Prevention:** Render free tier web services automatically spin down after 15 minutes of inactivity. To eliminate cold start latency and ensure instant responses for incoming requests, a GitHub Actions cron workflow (`.github/workflows/keep_alive.yml`) executes every 10 minutes to ping the backend REST API (`https://seatlybackend.onrender.com/api/events`):
+
+```yaml
+name: Render Backend Keep-Alive
+
+on:
+  schedule:
+    # Runs every 10 minutes to prevent Render free instance from spinning down
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Backend Health Endpoint
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" https://seatlybackend.onrender.com/api/events
+```
+
 
 ### B. Frontend Deployment (Vercel)
 * **Framework:** React 18 + Vite SPA deployed on Vercel Edge Network.

@@ -30,7 +30,7 @@ public class BookingsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateBookingRequest request)
     {
         var supabaseUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var userEmail = User.FindFirstValue(ClaimTypes.Email);
+        var userEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("email");
 
         if (string.IsNullOrEmpty(supabaseUserId))
             return Unauthorized(new { error = "User not authenticated." });
