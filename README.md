@@ -1,20 +1,21 @@
-# Seatly — Backend Documentation (.NET 10 Web API)
+# Seatly — Full-Stack Event Booking System (.NET 10 & React)
 
 > Author / Student: Mirza Hodžić  
 > Course Project: Event Management & Ticket Booking System  
-> Tech Stack: .NET 10 C#, Entity Framework Core, PostgreSQL, Supabase Auth, xUnit  
+> Tech Stack: .NET 10 C#, Entity Framework Core, PostgreSQL, Supabase Auth, React (Vite), xUnit  
 
 ---
 
 ## 1. Project Overview
 
-Seatly is a backend Web API system developed using .NET 10 C# for managing events (concerts, conferences) and booking seats in real-time.
+Seatly is a high-performance full-stack web application developed for managing events (concerts, conferences) and booking seats in real-time.
 
 Key Features:
 * Dynamic ticket pricing using seat category multipliers and discount strategies.
-* QR code generation in Base64 for digital event tickets.
+* Base64 QR code generation for digital event tickets.
 * Automated background service for releasing expired pending bookings.
-* High-performance reads via In-Memory Caching and database indexes.
+* High-performance reads via In-Memory Caching and PostgreSQL B-Tree database indexes.
+* Fully containerized Docker deployment on Render, Vercel frontend hosting, and Cloudflare DNS management.
 
 ---
 
@@ -29,6 +30,7 @@ Seatly Solution Structure:
  │    ├── Seatly.Application    (Business Logic: DTOs, Services, Discount Strategies)
  │    ├── Seatly.Infrastructure (Data: AppDbContext, Repositories, QrCode, Email)
  │    └── Seatly.API            (Entry Point: Controllers, Middleware, BackgroundServices)
+ ├── Frontend/                  (React 18 + Vite + TailwindCSS SPA)
  └── tests/
       └── Seatly.Tests          (xUnit Unit Tests)
 ```
@@ -91,11 +93,38 @@ Encapsulates object instantiation logic for Concert and Conference types based o
 
 ## 5. Background Services
 
-* ExpiredBookingCleanupService: Inherits from BackgroundService. Runs periodically every 5 minutes to scan for Pending bookings older than 15 minutes, automatically updating their status to Cancelled and freeing allocated seats.
+* ExpiredBookingCleanupService: Inherits from BackgroundService. Runs periodically every 2 minutes to scan for Pending bookings older than 15 minutes, automatically updating their status to Cancelled and freeing allocated seats.
 
 ---
 
-## 6. How to Run & Test
+## 6. Production Infrastructure & Cloud Deployment
+
+### A. Backend Deployment (Render & Docker)
+* **Containerization:** The .NET 10 Web API is containerized using a multi-stage Dockerfile (`mcr.microsoft.com/dotnet/sdk:10.0` for build, `aspnet:10.0` for runtime) exposing port `8080`.
+* **Database Connectivity (IPv4 Session Pooling):** Render free instances support outbound IPv4 traffic. Connection to Supabase PostgreSQL is established via Supabase Session Pooler (`aws-1-eu-west-1.pooler.supabase.com:5432`) to resolve IPv6 routing limitations.
+* **Environment Configuration:**
+  - `ConnectionStrings__DefaultConnection`: Encrypted connection string with SSL Mode enabled.
+  - `Supabase__Authority` & `Supabase__ValidIssuer`: Supabase JWT Token verification endpoint.
+  - `Supabase__ValidAudience`: `authenticated`.
+
+### B. Frontend Deployment (Vercel)
+* **Framework:** React 18 + Vite SPA deployed on Vercel Edge Network.
+* **Single Page Application Rewrites:** `vercel.json` maps all incoming routes `/(.*)` to `/index.html` to allow client-side routing via React Router DOM.
+* **Environment Variables:**
+  - `VITE_SUPABASE_URL`: Supabase project API URL.
+  - `VITE_SUPABASE_ANON_KEY`: Supabase client-side anonymous key.
+  - `VITE_API_BASE_URL`: Production backend endpoint (`https://seatlybackend.onrender.com/api`).
+
+### C. Custom Domain & Cloudflare DNS Management
+* **Custom Domain:** `https://seatly.hodzicmirza.com` managed via Cloudflare DNS.
+* **DNS Records:** CNAME Flattening pointing subdomain traffic to Vercel production edge servers (`cname.vercel-dns.com`).
+* **Supabase OAuth URL Configuration:**
+  - `Site URL`: Set to `https://seatly.hodzicmirza.com`.
+  - `Redirect URLs`: Whitelisted `https://seatly.hodzicmirza.com/**`, `https://seatly-opal.vercel.app/**`, and local dev endpoints to ensure seamless OAuth (Google/GitHub) authentication flows.
+
+---
+
+## 7. How to Run & Test Locally
 
 ### Running Backend API:
 ```bash
@@ -104,9 +133,16 @@ dotnet run
 ```
 API available at: http://localhost:5051 (Swagger UI at http://localhost:5051/swagger).
 
+### Running Frontend App:
+```bash
+cd Frontend
+npm install
+npm run dev
+```
+Frontend available at: http://localhost:5173.
+
 ### Running Unit Tests:
 ```bash
 cd tests/Seatly.Tests
 dotnet test
 ```
-
