@@ -10,6 +10,7 @@ export interface EventResponse {
   name: string;
   description: string;
   date: string;
+  street: string;
   city: string;
   country: string;
   basePrice: number;
@@ -17,6 +18,10 @@ export interface EventResponse {
   availableSeats: number;
   eventType: string;
   categories: CategoryResponse[];
+  headliner?: string;
+  supportAct?: string;
+  organizer?: string;
+  keynoteSpeaker?: string;
 }
 
 export interface CreateEventRequest {

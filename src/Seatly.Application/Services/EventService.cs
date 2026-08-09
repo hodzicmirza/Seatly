@@ -219,11 +219,17 @@ public class EventService : IEventService
         var bookedSeats = await _bookingRepository.GetBookedSeatsCountAsync(@event.Id);
         var availableSeats = @event.AvailableSeats(bookedSeats);
 
+        string? headliner = (@event as Concert)?.Headliner;
+        string? supportAct = (@event as Concert)?.SupportAct;
+        string? organizer = (@event as Conference)?.Organizer;
+        string? keynoteSpeaker = (@event as Conference)?.KeynoteSpeaker;
+
         return new EventResponse(
             @event.Id,
             @event.Name,
             @event.Description,
             @event.Date,
+            @event.Location.Street ?? "",
             @event.Location.City,
             @event.Location.Country,
             @event.BasePrice.Amount,
@@ -237,7 +243,11 @@ public class EventService : IEventService
                     @event.CalculatePrice(c).Amount,
                     c.SeatsCount
                 ))
-                .ToList()
+                .ToList(),
+            headliner,
+            supportAct,
+            organizer,
+            keynoteSpeaker
         );
     }
 }

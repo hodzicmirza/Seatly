@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { validateQrTicket } from "@/api/bookings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,13 +16,20 @@ import {
   MdConfirmationNumber,
   MdRefresh,
   MdLocationOn,
+  MdCameraAlt,
+  MdStop,
 } from "react-icons/md";
 import type { BookingResponse } from "@/types";
+import { BrowserMultiFormatReader } from "@zxing/library";
 
 export default function ValidateTicketPage() {
   const [qrInput, setQrInput] = useState("");
   const [lastValidatedBooking, setLastValidatedBooking] = useState<BookingResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
 
   const mutation = useMutation({
     mutationFn: (data: string) => validateQrTicket(data),
@@ -38,6 +45,60 @@ export default function ValidateTicketPage() {
       toast.error(msg);
     },
   });
+
+  const stopCamera = () => {
+    if (codeReaderRef.current) {
+      codeReaderRef.current.reset();
+      codeReaderRef.current = null;
+    }
+    setIsScanning(false);
+  };
+
+  const startCamera = async () => {
+    setIsScanning(true);
+    setLastValidatedBooking(null);
+    setErrorMsg(null);
+
+    try {
+      const codeReader = new BrowserMultiFormatReader();
+      codeReaderRef.current = codeReader;
+
+      const videoDevices = await codeReader.listVideoInputDevices();
+      if (!videoDevices || videoDevices.length === 0) {
+        toast.error("No camera devices detected on your system.");
+        setIsScanning(false);
+        return;
+      }
+
+      // Prefer back camera if available (facingMode environment)
+      const selectedDevice = videoDevices.find((d) => d.label.toLowerCase().includes("back")) || videoDevices[0];
+
+      if (videoRef.current) {
+        codeReader.decodeFromVideoDevice(
+          selectedDevice.deviceId,
+          videoRef.current,
+          (result, err) => {
+            if (result) {
+              const scannedText = result.getText();
+              setQrInput(scannedText);
+              stopCamera();
+              mutation.mutate(scannedText);
+            }
+          }
+        );
+      }
+    } catch (err) {
+      console.error("Camera access error:", err);
+      toast.error("Failed to access camera. Please allow camera permissions.");
+      setIsScanning(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
 
   const handleValidate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +125,7 @@ export default function ValidateTicketPage() {
                 <MdQrCodeScanner className="text-primary text-2xl" /> Ticket QR Code Validator
               </CardTitle>
               <CardDescription className="mt-1">
-                Admin Portal: Scan or paste a ticket QR code / Booking ID payload to verify authenticity and check in attendees.
+                Admin Portal: Scan with live camera or paste a ticket QR code / Booking ID payload to verify authenticity.
               </CardDescription>
             </div>
             <Badge variant="secondary" className="px-3 py-1 text-xs">
@@ -74,7 +135,46 @@ export default function ValidateTicketPage() {
         </CardHeader>
 
         <CardContent className="pt-6 space-y-6">
-          <form onSubmit={handleValidate} className="space-y-4">
+          {/* Live Camera Scanner Box */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="font-semibold text-sm">Live Camera Scanner</Label>
+              {!isScanning ? (
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  onClick={startCamera}
+                  className="rounded-xl flex items-center gap-1.5 font-semibold text-xs shadow-sm"
+                >
+                  <MdCameraAlt className="text-base" /> Turn On Camera Scanner
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={stopCamera}
+                  className="rounded-xl flex items-center gap-1.5 text-xs font-semibold"
+                >
+                  <MdStop className="text-base" /> Stop Camera
+                </Button>
+              )}
+            </div>
+
+            {isScanning && (
+              <div className="relative rounded-2xl overflow-hidden border-2 border-primary/60 bg-black aspect-video flex items-center justify-center shadow-inner">
+                <video ref={videoRef} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 border-2 border-dashed border-emerald-400/80 rounded-2xl pointer-events-none animate-pulse flex items-center justify-center">
+                  <div className="text-xs font-bold text-white bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-md">
+                    Position QR Code inside frame...
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <form onSubmit={handleValidate} className="space-y-4 pt-2 border-t">
             <div>
               <Label htmlFor="qrData" className="font-semibold">
                 QR Code Payload or Booking Reference ID *

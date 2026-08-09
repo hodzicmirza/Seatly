@@ -13,9 +13,6 @@
 **Seatly** is a state-of-the-art, full-stack event management and real-time ticket booking web application. It enables organizers and administrators to create and update events, manage ticket categories and seat capacities, while providing customers with a seamless ticket purchasing experience featuring dynamic discount strategies and digital QR code email tickets.
 
 ### Key Features & UX Highlights:
-* **Dynamic Seat Category Capacity Tracking:** Event creators can assign specific seat capacities per category (e.g., Standard: 50 seats, VIP: 20 seats). Server-side validation enforces that the category sum strictly equals the total event capacity.
-* **Real-Time Unallocated Seats Banner:** Visual feedback status banner during event creation and editing that displays allocated capacity in real-time (`Total Allocated: X / Total seats`) with color-coded status indicators (🟢 All allocated, 🟡 Unallocated seats remaining, 🔴 Capacity exceeded).
-* **Interactive Option Cards for Category Selection:** Booking modal lists categories as interactive option cards displaying category name, specific seat capacity, price in BAM, and radio selection state (eliminating plain `<select>` dropdowns).
 * **Admin QR Code Ticket Validator (`/admin/validate-ticket`):** Dedicated admin tool to scan or verify ticket QR codes/Booking IDs in real-time. Automatically validates ticket authenticity, prevents duplicate or cancelled ticket entry, and updates ticket status to `Used`.
 * **Smart Discount Calculation:** Automated discount evaluation using strategy patterns (15% Bulk Discount for 5+ seats, Early Bird 10%, VIP 20%).
 * **Base64 Digital QR Ticket Generation:** Instant digital QR ticket creation upon booking confirmation, downloadable in PNG format.

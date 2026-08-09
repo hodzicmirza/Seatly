@@ -53,8 +53,8 @@ export default function EditEventPage() {
         event.categories && event.categories.length > 0
           ? event.categories.map((c) => ({
               name: c.name,
-              multiplier: c.finalPrice && event.basePrice ? Number((c.finalPrice / event.basePrice).toFixed(2)) : 1.0,
-              seatsCount: c.seatsCount || Math.floor(event.totalSeats / event.categories.length),
+              multiplier: c.priceMultiplier ?? 1.0,
+              seatsCount: c.seatsCount || 0,
             }))
           : [{ name: "Standard", multiplier: 1.0, seatsCount: event.totalSeats || 0 }];
 
@@ -62,7 +62,7 @@ export default function EditEventPage() {
         name: event.name || "",
         description: event.description || "",
         date: isoDate,
-        street: "",
+        street: event.street || "",
         city: event.city || "",
         country: event.country || "",
         basePrice: event.basePrice || 0,
@@ -196,8 +196,13 @@ export default function EditEventPage() {
                     onChange={(e) => updateField("date", e.target.value)}
                     className="mt-1"
                   />
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    European 24-hour format (DD/MM/YYYY HH:mm)
+                  <p className="text-[11px] text-muted-foreground mt-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
+                    <span>European 24-hour format (DD/MM/YYYY HH:mm)</span>
+                    {form.date && !isNaN(new Date(form.date).getTime()) && (
+                      <span className="font-semibold text-primary">
+                        Preview: {new Date(form.date).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div>

@@ -162,8 +162,13 @@ export default function CreateEventPage() {
                     onChange={(e) => updateField("date", e.target.value)}
                     className="mt-1"
                   />
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    European 24-hour format (DD/MM/YYYY HH:mm)
+                  <p className="text-[11px] text-muted-foreground mt-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
+                    <span>(DD/MM/YYYY HH:mm)</span>
+                    {form.date && !isNaN(new Date(form.date).getTime()) && (
+                      <span className="font-semibold text-primary">
+                        Preview: {new Date(form.date).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div>
@@ -316,13 +321,12 @@ export default function CreateEventPage() {
 
               {/* Unallocated Seats Status Banner */}
               <div
-                className={`p-3.5 rounded-xl border text-xs sm:text-sm font-semibold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 transition-colors ${
-                  unallocatedSeats === 0
-                    ? "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                    : unallocatedSeats > 0
+                className={`p-3.5 rounded-xl border text-xs sm:text-sm font-semibold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 transition-colors ${unallocatedSeats === 0
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                  : unallocatedSeats > 0
                     ? "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
                     : "bg-red-50 text-red-800 border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800"
-                }`}
+                  }`}
               >
                 <div>
                   Total Allocated: <strong>{allocatedSeats}</strong> / {form.totalSeats} seats

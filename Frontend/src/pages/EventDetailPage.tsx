@@ -152,13 +152,24 @@ export default function EventDetailPage() {
 
           <Separator />
 
-          <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3.5 flex items-start gap-3">
-            <MdLocalOffer className="text-emerald-600 dark:text-emerald-400 text-xl mt-0.5" />
-            <div className="text-sm">
-              <span className="font-semibold text-emerald-800 dark:text-emerald-300">Special Discount Available!</span>
-              <p className="text-emerald-700 dark:text-emerald-400">
-                Book <strong>5 or more seats</strong> to automatically unlock a <strong>15% Bulk Discount</strong> on your entire reservation!
-              </p>
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center gap-2 font-bold text-sm text-emerald-900 dark:text-emerald-300">
+              <MdLocalOffer className="text-emerald-600 dark:text-emerald-400 text-xl" />
+              Available Discounts & Promotions
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              <div className="bg-white/80 dark:bg-black/40 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/60 space-y-1">
+                <span className="font-bold text-emerald-800 dark:text-emerald-300 block">📦 15% Bulk Discount</span>
+                <p className="text-muted-foreground leading-tight">Applied automatically when reserving 5+ seats.</p>
+              </div>
+              <div className="bg-white/80 dark:bg-black/40 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/60 space-y-1">
+                <span className="font-bold text-emerald-800 dark:text-emerald-300 block">🐣 10% Early Bird</span>
+                <p className="text-muted-foreground leading-tight">Applied when booking &gt;30 days in advance.</p>
+              </div>
+              <div className="bg-white/80 dark:bg-black/40 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/60 space-y-1">
+                <span className="font-bold text-emerald-800 dark:text-emerald-300 block">👑 20% VIP Member</span>
+                <p className="text-muted-foreground leading-tight">Exclusive discount for VIP account holders.</p>
+              </div>
             </div>
           </div>
 
