@@ -180,8 +180,8 @@ public class Program
             try
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                db.Database.EnsureCreated();
-                app.Logger.LogInformation("Database initialized successfully.");
+                db.Database.Migrate();
+                app.Logger.LogInformation("Database migrated successfully.");
             }
             catch (Exception ex)
             {

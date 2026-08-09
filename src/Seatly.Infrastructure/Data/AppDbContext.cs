@@ -62,6 +62,7 @@ public class AppDbContext : DbContext, IUnitOfWork
                     cat.WithOwner().HasForeignKey("EventId");
                     cat.Property<Guid>("Id");
                     cat.HasKey("Id");
+                    cat.Property(c => c.SeatsCount).HasDefaultValue(0);
                 }
             );
         });
@@ -101,6 +102,7 @@ public class AppDbContext : DbContext, IUnitOfWork
                 {
                     cat.Property(c => c.Name).HasColumnName("Category_Name");
                     cat.Property(c => c.PriceMultiplier).HasColumnName("Category_Multiplier");
+                    cat.Property(c => c.SeatsCount).HasColumnName("Category_SeatsCount").HasDefaultValue(0);
                 }
             );
 
