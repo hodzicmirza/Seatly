@@ -51,8 +51,8 @@ public class EmailService : IEmailService
                     <table style='width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;'>
                         <tr style='border-bottom: 1px solid #f3f4f6;'><td style='padding: 10px 0; color: #6b7280;'><strong>Event:</strong></td><td style='padding: 10px 0;'>{booking.EventName}</td></tr>
                         <tr style='border-bottom: 1px solid #f3f4f6;'><td style='padding: 10px 0; color: #6b7280;'><strong>Date & Time:</strong></td><td style='padding: 10px 0;'>{booking.EventDate:MMMM dd, yyyy - HH:mm}</td></tr>
-                        <tr style='border-bottom: 1px solid #f3f4f6;'><td style='padding: 10px 0; color: #6b7280;'><strong>Location:</strong></td><td style='padding: 10px 0;'>{booking.Location}</td></tr>
-                        <tr style='border-bottom: 1px solid #f3f4f6;'><td style='padding: 10px 0; color: #6b7280;'><strong>Category:</strong></td><td style='padding: 10px 0;'>{booking.CategoryName}</td></tr>
+                        <tr style='border-bottom: 1px solid #f3f4f6;'><td style='padding: 10px 0; color: #6b7280;'><strong>Location:</strong></td><td style='padding: 10px 0;'>{booking.EventLocation}</td></tr>
+                        <tr style='border-bottom: 1px solid #f3f4f6;'><td style='padding: 10px 0; color: #6b7280;'><strong>Category:</strong></td><td style='padding: 10px 0;'>{booking.Category}</td></tr>
                         <tr style='border-bottom: 1px solid #f3f4f6;'><td style='padding: 10px 0; color: #6b7280;'><strong>Tickets:</strong></td><td style='padding: 10px 0;'>{booking.NumberOfSeats}</td></tr>
                         <tr style='border-bottom: 1px solid #f3f4f6;'><td style='padding: 10px 0; color: #6b7280;'><strong>Total Amount:</strong></td><td style='padding: 10px 0; font-weight: bold; color: #111827;'>{booking.TotalPrice} BAM</td></tr>
                     </table>
