@@ -97,6 +97,17 @@ public class BookingsController : ControllerBase
             ? Ok(new { message = "Ticket marked as used" })
             : BadRequest(new { error = result.ErrorMessage });
     }
+
+    [HttpPost("validate-qr")]
+    [Authorize]
+    public async Task<IActionResult> ValidateQr([FromBody] ValidateQrRequest request)
+    {
+        var result = await _bookingService.ValidateQrTicketAsync(request.QrCodeData);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(new { error = result.ErrorMessage });
+    }
 }
 
 public record MarkAsUsedRequest(string QrCodeData);
+public record ValidateQrRequest(string QrCodeData);

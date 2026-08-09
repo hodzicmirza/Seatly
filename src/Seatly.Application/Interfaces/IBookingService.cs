@@ -22,4 +22,6 @@ public interface IBookingService
     Task<Result> DeleteBookingAdminAsync(Guid bookingId);
 
     Task<Result> MarkBookingAsUsedAsync(Guid bookingId, string qrCodeData);
+
+    Task<Result<BookingResponse>> ValidateQrTicketAsync(string qrCodeData);
 }

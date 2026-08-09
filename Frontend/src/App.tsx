@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/reac
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MdEvent, MdBookmark, MdPerson, MdLogout, MdLogin } from "react-icons/md";
+import { MdEvent, MdBookmark, MdPerson, MdLogout, MdLogin, MdQrCodeScanner } from "react-icons/md";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import EventsPage from "@/pages/EventsPage";
 import EventDetailPage from "@/pages/EventDetailPage";
@@ -11,8 +11,8 @@ import CreateEventPage from "@/pages/CreateEventPage";
 import BookingsPage from "@/pages/BookingsPage";
 import ProfilePage from "@/pages/ProfilePage";
 import LoginPage from "@/pages/LoginPage";
-
 import EditEventPage from "@/pages/EditEventPage";
+import ValidateTicketPage from "@/pages/ValidateTicketPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +34,8 @@ function Navbar() {
   const { user, dbUser, signOut } = useAuth();
   const client = useQueryClient();
   const navigate = useNavigate();
+
+  const isAdminOrOrganizer = dbUser?.role === "Admin" || dbUser?.role === "Organizer";
 
   const handleLogout = async () => {
     client.clear();
@@ -59,6 +61,11 @@ function Navbar() {
                   <MdPerson /> My Profile
                 </Link>
               </>
+            )}
+            {isAdminOrOrganizer && (
+              <Link to="/admin/validate-ticket" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                <MdQrCodeScanner /> Validate QR
+              </Link>
             )}
           </nav>
         </div>
@@ -106,6 +113,9 @@ export default function App() {
               <Route path="/events/:id" element={<EventDetailPage />} />
               <Route path="/events/:id/edit" element={
                 <ProtectedRoute><EditEventPage /></ProtectedRoute>
+              } />
+              <Route path="/admin/validate-ticket" element={
+                <ProtectedRoute><ValidateTicketPage /></ProtectedRoute>
               } />
               <Route path="/bookings" element={
                 <ProtectedRoute><BookingsPage /></ProtectedRoute>

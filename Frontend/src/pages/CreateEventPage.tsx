@@ -79,7 +79,7 @@ export default function CreateEventPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (allocatedSeats !== form.totalSeats) {
-      toast.error(`Zbir mjesta po kategorijama (${allocatedSeats}) mora biti jednak ukupnom kapacitetu (${form.totalSeats})! Broj nedodijeljenih mjesta: ${unallocatedSeats}`);
+      toast.error(`The sum of category seats (${allocatedSeats}) must equal the total event capacity (${form.totalSeats})! Unallocated seats: ${unallocatedSeats}`);
       return;
     }
     mutation.mutate(form);
@@ -306,7 +306,7 @@ export default function CreateEventPage() {
                     <MdConfirmationNumber className="text-lg" /> Seat Categories & Seat Distribution
                   </h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Specify the number of seats allocated to each category. Total seats across categories must equal Total Capacity ({form.totalSeats}).
+                    Specify the number of seats allocated to each category. Total category seats must equal Total Capacity ({form.totalSeats}).
                   </p>
                 </div>
                 <Button type="button" variant="outline" size="sm" onClick={addCategory} className="rounded-lg">
@@ -325,20 +325,20 @@ export default function CreateEventPage() {
                 }`}
               >
                 <div>
-                  Ukupno dodijeljeno: <strong>{allocatedSeats}</strong> / {form.totalSeats} mjesta
+                  Total Allocated: <strong>{allocatedSeats}</strong> / {form.totalSeats} seats
                 </div>
                 <div>
                   {unallocatedSeats === 0 ? (
                     <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
-                      ✓ Sva mjesta su dodijeljena!
+                      ✓ All seats successfully allocated!
                     </span>
                   ) : unallocatedSeats > 0 ? (
                     <span className="text-amber-800 dark:text-amber-300 font-bold">
-                      ⚠️ Broj nedodijeljenih mjesta: <strong>{unallocatedSeats}</strong>
+                      ⚠️ Unallocated seats: <strong>{unallocatedSeats}</strong>
                     </span>
                   ) : (
                     <span className="text-red-700 dark:text-red-400 font-bold">
-                      ❌ Prekoračenje kapaciteta za {Math.abs(unallocatedSeats)} mjesta!
+                      ❌ Capacity exceeded by {Math.abs(unallocatedSeats)} seats!
                     </span>
                   )}
                 </div>
@@ -357,7 +357,7 @@ export default function CreateEventPage() {
               <div className="space-y-3">
                 <div className="grid grid-cols-12 gap-2 sm:gap-3 text-xs font-semibold text-muted-foreground px-1">
                   <div className="col-span-4">Category Name</div>
-                  <div className="col-span-3">Seats (Broj mjesta)</div>
+                  <div className="col-span-3">Capacity (Seats)</div>
                   <div className="col-span-4">Price Multiplier</div>
                   <div className="col-span-1 text-right">Action</div>
                 </div>
@@ -377,7 +377,7 @@ export default function CreateEventPage() {
                         <Input
                           type="number"
                           min={1}
-                          placeholder="Mjesta"
+                          placeholder="Seats"
                           value={cat.seatsCount || ""}
                           onChange={(e) => updateCategory(i, "seatsCount", Number(e.target.value))}
                         />

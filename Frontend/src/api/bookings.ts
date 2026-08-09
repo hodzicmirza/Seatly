@@ -23,3 +23,8 @@ export async function cancelBooking(id: string): Promise<void> {
 export async function markBookingAsUsed(id: string, qrCodeData: string): Promise<void> {
   await api.post(`/bookings/${id}/use`, { qrCodeData });
 }
+
+export async function validateQrTicket(qrCodeData: string): Promise<BookingResponse> {
+  const { data } = await api.post<BookingResponse>("/bookings/validate-qr", { qrCodeData });
+  return data;
+}

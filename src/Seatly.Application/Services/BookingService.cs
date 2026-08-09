@@ -242,6 +242,70 @@ public class BookingService : IBookingService
         }
     }
 
+    public async Task<Result<BookingResponse>> ValidateQrTicketAsync(string qrCodeData)
+    {
+        if (string.IsNullOrWhiteSpace(qrCodeData))
+            return Result<BookingResponse>.Failure("QR code or Ticket ID payload is required.");
+
+        Guid bookingId = Guid.Empty;
+
+        
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(qrCodeData);
+            if (doc.RootElement.TryGetProperty("bookingId", out var idProp) && Guid.TryParse(idProp.GetString(), out var parsedId))
+            {
+                bookingId = parsedId;
+            }
+        }
+        catch
+        {
+            Guid.TryParse(qrCodeData.Trim(), out bookingId);
+        }
+
+        Booking? booking = null;
+
+        if (bookingId != Guid.Empty)
+        {
+            booking = await this._bookingRepository.GetByIdAsync(bookingId);
+        }
+
+        if (booking == null)
+        {
+            var allBookings = await this._bookingRepository.GetAllAsync();
+            booking = allBookings.FirstOrDefault(b => b.QrCodeData == qrCodeData);
+        }
+
+        if (booking == null)
+        {
+            return Result<BookingResponse>.Failure("Invalid Ticket: Booking reference not found in database.");
+        }
+
+        if (booking.Status == Seatly.Domain.Enums.BookingStatus.Cancelled)
+        {
+            return Result<BookingResponse>.Failure($"Ticket CANCELLED! Booking #{booking.Id.ToString()[..8]} was cancelled.");
+        }
+
+        if (booking.Status == Seatly.Domain.Enums.BookingStatus.Used)
+        {
+            return Result<BookingResponse>.Failure($"Ticket ALREADY USED! Booking #{booking.Id.ToString()[..8]} was previously validated.");
+        }
+
+        try
+        {
+            booking.MarkAsUsed();
+            await this._bookingRepository.UpdateAsync(booking);
+            await this._unitOfWork.SaveChangesAsync();
+
+            var response = MapToResponse(booking, booking.Event);
+            return Result<BookingResponse>.Success(response);
+        }
+        catch (DomainException ex)
+        {
+            return Result<BookingResponse>.Failure(ex.Message);
+        }
+    }
+
     private async Task<User> GetOrCreateUserAsync(string supabaseUserId, string email)
     {
         var user = await this._userRepository.GetBySupabaseUserIdAsync(supabaseUserId);
