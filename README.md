@@ -13,7 +13,10 @@
 **Seatly** is a state-of-the-art, full-stack event management and real-time ticket booking web application. It enables organizers and administrators to create and update events, manage ticket categories and seat capacities, while providing customers with a seamless ticket purchasing experience featuring dynamic discount strategies and digital QR code email tickets.
 
 ### Key Features & UX Highlights:
-* **Dynamic Seat Category & Price Multiplier Management:** Event creators can define and update multiple seat categories (e.g. Standard, VIP, Fan Pit) with custom price multipliers relative to the base ticket price.
+* **Dynamic Seat Category Capacity Tracking:** Event creators can assign specific seat capacities per category (e.g., Standard: 50 seats, VIP: 20 seats). Server-side validation enforces that the category sum strictly equals the total event capacity.
+* **Real-Time Unallocated Seats Banner:** Visual feedback status banner during event creation and editing that displays allocated capacity in real-time (`Total Allocated: X / Total seats`) with color-coded status indicators (🟢 All allocated, 🟡 Unallocated seats remaining, 🔴 Capacity exceeded).
+* **Interactive Option Cards for Category Selection:** Booking modal lists categories as interactive option cards displaying category name, specific seat capacity, price in BAM, and radio selection state (eliminating plain `<select>` dropdowns).
+* **Admin QR Code Ticket Validator (`/admin/validate-ticket`):** Dedicated admin tool to scan or verify ticket QR codes/Booking IDs in real-time. Automatically validates ticket authenticity, prevents duplicate or cancelled ticket entry, and updates ticket status to `Used`.
 * **Smart Discount Calculation:** Automated discount evaluation using strategy patterns (15% Bulk Discount for 5+ seats, Early Bird 10%, VIP 20%).
 * **Base64 Digital QR Ticket Generation:** Instant digital QR ticket creation upon booking confirmation, downloadable in PNG format.
 * **Automated Email Dispatch (Resend API):** Production-ready HTML email notifications with embedded QR code tickets dispatched automatically upon booking confirmation, as well as instant cancellation notifications.
@@ -22,7 +25,8 @@
   * **Confirmation Modal Dialogs:** Interactive modal prompt before cancelling any booking to prevent accidental cancellations.
   * **European Date & Time Formatting:** Displays and inputs date/time in standard European 24-hour format (`DD/MM/YYYY HH:mm`).
 * **Automated Expired Booking Cleanup:** Background worker automatically cancels pending reservations older than 15 minutes, restoring seat availability.
-* **24/7 Keep-Alive Infrastructure:** GitHub Actions cron workflow (`.github/workflows/keep_alive.yml`) prevents Render free-tier instances from cold starting by pinging the backend API every 10 minutes.
+* **Automatic Database Migrations:** Entity Framework Core auto-migrates database schemas (`db.Database.Migrate()`) on startup.
+* **24/7 Keep-Alive Infrastructure:** GitHub Actions cron workflow (`.github/workflows/keep_alive.yml`) pings the backend API every 10 minutes to maintain 24/7 availability on Render free instances.
 
 ---
 
@@ -48,7 +52,7 @@ Seatly Solution Structure:
 #### 1. `Seatly.Domain`
 * Pure C# domain model with zero external dependencies.
 * **Entities:** `Event` (abstract base class), `Concert`, `Conference`, `Booking`, `User`.
-* **Value Objects:** `Money` (amount + currency), `Address` (street, city, country), `SeatCategory` (name + multiplier).
+* **Value Objects:** `Money` (amount + currency), `Address` (street, city, country), `SeatCategory` (name + multiplier + seatsCount).
 * **Enums:** `UserRole` (`Customer`, `Admin`, `Organizer`), `BookingStatus` (`Pending`, `Confirmed`, `Cancelled`, `Used`), `EventType`.
 
 #### 2. `Seatly.Application`
@@ -57,8 +61,8 @@ Seatly Solution Structure:
 * **In-Memory Caching:** High-throughput read performance via `IMemoryCache` with automatic cache invalidation upon mutation.
 
 #### 3. `Seatly.Infrastructure`
-* **Data Access:** Entity Framework Core 10 with Npgsql provider for Supabase PostgreSQL.
-* **Thread Safety & Entity Tracking:** Tracked query execution for domain entity updates/cancellations to prevent EF Core owned-collection tracking issues.
+* **Data Access:** Entity Framework Core 10 with Npgsql provider for Supabase PostgreSQL. Auto-applies schema migrations (`db.Database.Migrate()`).
+* **Thread Safety & Entity Tracking:** Tracked query execution for domain entity updates/cancellations.
 * **Repositories:** `EventRepository`, `BookingRepository`, `UserRepository`.
 * **Services:** `QrCodeService` (SkiaSharp-based PNG generation), `EmailService` (Resend HTTP REST integration).
 

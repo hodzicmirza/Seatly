@@ -43,13 +43,21 @@ public class EventService : IEventService
             var totalCategorySeats = request.Categories.Sum(c => c.SeatsCount);
             if (totalCategorySeats > 0 && totalCategorySeats != request.TotalSeats)
             {
-                return Result<EventResponse>.Failure($"Suma mjesta po kategorijama ({totalCategorySeats}) mora biti jednaka ukupnom kapacitetu događaja ({request.TotalSeats}).");
+                return Result<EventResponse>.Failure($"The sum of category seats ({totalCategorySeats}) must equal the total event capacity ({request.TotalSeats}).");
             }
 
             var categories = request
                 .Categories.Select(c => new SeatCategory(c.Name, c.Multiplier, c.SeatsCount))
                 .ToList();
             var money = new Money(request.BasePrice);
+
+            string? extraInfo = request.EventType == EventType.Concert
+                ? (string.IsNullOrWhiteSpace(request.Headliner) ? null : request.Headliner)
+                : (string.IsNullOrWhiteSpace(request.Organizer) ? null : request.Organizer);
+
+            string? subInfo = request.EventType == EventType.Concert
+                ? (string.IsNullOrWhiteSpace(request.SupportAct) ? null : request.SupportAct)
+                : (string.IsNullOrWhiteSpace(request.KeynoteSpeaker) ? null : request.KeynoteSpeaker);
 
             // Instantiate concrete event using EventFactory pattern
             Event newEvent = EventFactory.CreateEvent(
@@ -61,7 +69,8 @@ public class EventService : IEventService
                 request.TotalSeats,
                 categories,
                 request.EventType,
-                request.Headliner ?? request.Organizer
+                extraInfo,
+                subInfo
             );
             await _eventRepository.AddAsync(newEvent);
             await _unitOfWork.SaveChangesAsync();
@@ -163,7 +172,7 @@ public class EventService : IEventService
                 var totalCategorySeats = request.Categories.Sum(c => c.SeatsCount);
                 if (totalCategorySeats > 0 && totalCategorySeats != request.TotalSeats)
                 {
-                    return Result<EventResponse>.Failure($"Suma mjesta po kategorijama ({totalCategorySeats}) mora biti jednaka ukupnom kapacitetu događaja ({request.TotalSeats}).");
+                    return Result<EventResponse>.Failure($"The sum of category seats ({totalCategorySeats}) must equal the total event capacity ({request.TotalSeats}).");
                 }
 
                 var categories = request.Categories

@@ -168,7 +168,7 @@ export default function EventsPage() {
                       <div className="flex items-center gap-2">
                         <MdEvent className="text-primary text-base" />
                         <span className="font-medium text-foreground">
-                          {new Date(event.date).toLocaleDateString("bs-BA", {
+                          {new Date(event.date).toLocaleDateString("en-GB", {
                             weekday: "short",
                             year: "numeric",
                             month: "short",

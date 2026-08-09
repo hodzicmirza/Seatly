@@ -178,7 +178,7 @@ export default function BookingsPage() {
                 <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <MdEvent className="text-primary text-base" />
-                    <span>{new Date(booking.eventDate).toLocaleDateString("bs-BA")}</span>
+                    <span>{new Date(booking.eventDate).toLocaleDateString("en-GB")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MdLocationOn className="text-primary text-base" />

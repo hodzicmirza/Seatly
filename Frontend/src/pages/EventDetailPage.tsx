@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getEventById, deleteEvent } from "@/api/events";
 import { createBooking } from "@/api/bookings";
 import { useAuth } from "@/context/AuthContext";
@@ -47,6 +47,12 @@ export default function EventDetailPage() {
     queryFn: () => getEventById(id!),
     enabled: !!id,
   });
+
+  useEffect(() => {
+    if (event?.categories && event.categories.length > 0 && !category) {
+      setCategory(event.categories[0].name);
+    }
+  }, [event, category]);
 
   const bookingMutation = useMutation({
     mutationFn: createBooking,
