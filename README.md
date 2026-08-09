@@ -2,7 +2,7 @@
 
 > Author / Student: Mirza Hodžić  
 > Course Project: Event Management & Ticket Booking System  
-> Tech Stack: .NET 10 C#, Entity Framework Core, PostgreSQL, Supabase Auth, React (Vite), xUnit  
+> Tech Stack: .NET 10 C#, Entity Framework Core, PostgreSQL, Supabase Auth, React (Vite), Resend API, xUnit  
 
 ---
 
@@ -13,6 +13,7 @@ Seatly is a high-performance full-stack web application developed for managing e
 Key Features:
 * Dynamic ticket pricing using seat category multipliers and discount strategies.
 * Base64 QR code generation for digital event tickets.
+* Automated email ticket dispatch via Resend API with embedded QR code confirmation.
 * Automated background service for releasing expired pending bookings.
 * High-performance reads via In-Memory Caching and PostgreSQL B-Tree database indexes.
 * Fully containerized Docker deployment on Render, Vercel frontend hosting, and Cloudflare DNS management.
@@ -28,7 +29,7 @@ Seatly Solution Structure:
  ├── src/
  │    ├── Seatly.Domain         (Core: Entities, Value Objects, Enums, Factories)
  │    ├── Seatly.Application    (Business Logic: DTOs, Services, Discount Strategies)
- │    ├── Seatly.Infrastructure (Data: AppDbContext, Repositories, QrCode, Email)
+ │    ├── Seatly.Infrastructure (Data: AppDbContext, Repositories, QrCode, Resend Email)
  │    └── Seatly.API            (Entry Point: Controllers, Middleware, BackgroundServices)
  ├── Frontend/                  (React 18 + Vite + TailwindCSS SPA)
  └── tests/
@@ -52,7 +53,7 @@ Seatly Solution Structure:
 * Database access via Entity Framework Core 10 and Npgsql PostgreSQL provider.
 * AppDbContext: Model configuration, value object mappings, and database indexes.
 * Repositories: EventRepository, BookingRepository, UserRepository.
-* Infrastructure Services: QrCodeService (QR code image generation), EmailService.
+* Infrastructure Services: QrCodeService (QR code image generation), EmailService (Resend HTTP REST integration for HTML ticket delivery).
 
 #### 4. Seatly.API
 * REST Controllers (EventsController, BookingsController, UsersController).
@@ -102,6 +103,7 @@ Encapsulates object instantiation logic for Concert and Conference types based o
 ### A. Backend Deployment (Render & Docker)
 * **Containerization:** The .NET 10 Web API is containerized using a multi-stage Dockerfile (`mcr.microsoft.com/dotnet/sdk:10.0` for build, `aspnet:10.0` for runtime) exposing port `8080`.
 * **Database Connectivity (IPv4 Session Pooling):** Render free instances support outbound IPv4 traffic. Connection to Supabase PostgreSQL is established via Supabase Session Pooler to resolve IPv6 routing limitations.
+* **Email Service:** Integrates Resend API for sending HTML booking confirmation emails containing embedded Base64 QR code tickets.
 
 ### B. Frontend Deployment (Vercel)
 * **Framework:** React 18 + Vite SPA deployed on Vercel Edge Network.

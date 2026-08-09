@@ -124,7 +124,10 @@ public class BookingService : IBookingService
             await this._bookingRepository.UpdateAsync(booking);
             await this._unitOfWork.SaveChangesAsync();
 
-            return Result<BookingResponse>.Success(MapToResponse(booking, booking.Event));
+            var response = MapToResponse(booking, booking.Event);
+            await this._emailService.SendBookingConfirmationAsync(user.Email, response, qrCodeBase64);
+
+            return Result<BookingResponse>.Success(response);
         }
         catch (DomainException ex)
         {
