@@ -152,6 +152,13 @@ public class EventService : IEventService
             var money = new Money(request.BasePrice);
 
             @event.UpdateDetails(request.Name, request.Description, eventDate, address, money, request.TotalSeats);
+            if (request.Categories != null && request.Categories.Any())
+            {
+                var categories = request.Categories
+                    .Select(c => new SeatCategory(c.Name, c.Multiplier))
+                    .ToList();
+                @event.UpdateSeatCategories(categories);
+            }
             await _eventRepository.UpdateAsync(@event);
             await _unitOfWork.SaveChangesAsync();
 

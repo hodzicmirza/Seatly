@@ -59,6 +59,7 @@ function statusBadge(status: string) {
 export default function BookingsPage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<string>("ALL");
+  const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
 
   const { data: bookings, isLoading, error } = useQuery({
     queryKey: ["bookings"],
@@ -200,15 +201,47 @@ export default function BookingsPage() {
 
             <div className="px-6 py-3 bg-muted/40 border-t flex items-center justify-end gap-2">
               {booking.status === "Confirmed" && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => cancelMutation.mutate(booking.bookingId)}
-                  disabled={cancelMutation.isPending}
-                  className="rounded-lg text-xs"
+                <Dialog
+                  open={cancelBookingId === booking.bookingId}
+                  onOpenChange={(isOpen) => setCancelBookingId(isOpen ? booking.bookingId : null)}
                 >
-                  <MdCancel className="mr-1" /> Cancel Booking
-                </Button>
+                  <DialogTrigger>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="rounded-lg text-xs"
+                    >
+                      <MdCancel className="mr-1" /> Cancel Booking
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-lg font-bold">Cancel Reservation</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-2">
+                      <p className="text-sm text-muted-foreground">
+                        Are you sure you want to cancel your booking for <strong>{booking.eventName}</strong>? This action cannot be undone and your reserved seats will be released.
+                      </p>
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="outline" size="sm" onClick={() => setCancelBookingId(null)}>
+                          No, Keep Booking
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={cancelMutation.isPending}
+                          onClick={() => {
+                            cancelMutation.mutate(booking.bookingId, {
+                              onSettled: () => setCancelBookingId(null),
+                            });
+                          }}
+                        >
+                          {cancelMutation.isPending ? "Cancelling..." : "Yes, Cancel Booking"}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               )}
 
               {booking.qrCodeBase64 && (

@@ -55,6 +55,7 @@ export default function EventDetailPage() {
       setOpen(false);
       queryClient.invalidateQueries({ queryKey: ["event", id] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      navigate("/");
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.error || "Booking failed.");

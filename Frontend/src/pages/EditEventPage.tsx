@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getEventById, updateEvent } from "@/api/events";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { MdArrowBack, MdSave, MdEvent, MdLocationOn } from "react-icons/md";
+import { MdArrowBack, MdSave, MdEvent, MdLocationOn, MdConfirmationNumber, MdAdd, MdDelete, MdHelpOutline } from "react-icons/md";
 
 export default function EditEventPage() {
   const { id } = useParams<{ id: string }>();
@@ -20,7 +20,17 @@ export default function EditEventPage() {
     enabled: !!id,
   });
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    name: string;
+    description: string;
+    date: string;
+    street: string;
+    city: string;
+    country: string;
+    basePrice: number;
+    totalSeats: number;
+    categories: Array<{ name: string; multiplier: number }>;
+  }>({
     name: "",
     description: "",
     date: "",
@@ -29,6 +39,7 @@ export default function EditEventPage() {
     country: "",
     basePrice: 0,
     totalSeats: 0,
+    categories: [{ name: "Standard", multiplier: 1.0 }],
   });
 
   useEffect(() => {
@@ -47,6 +58,13 @@ export default function EditEventPage() {
         country: event.country || "",
         basePrice: event.basePrice || 0,
         totalSeats: event.totalSeats || 0,
+        categories:
+          event.categories && event.categories.length > 0
+            ? event.categories.map((c) => ({
+                name: c.name,
+                multiplier: c.finalPrice && event.basePrice ? Number((c.finalPrice / event.basePrice).toFixed(2)) : 1.0,
+              }))
+            : [{ name: "Standard", multiplier: 1.0 }],
       });
     }
   }, [event]);
@@ -64,6 +82,33 @@ export default function EditEventPage() {
 
   const updateField = (field: string, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const addCategory = () => {
+    setForm((prev) => ({
+      ...prev,
+      categories: [...prev.categories, { name: "", multiplier: 1.0 }],
+    }));
+  };
+
+  const removeCategory = (index: number) => {
+    if (form.categories.length <= 1) {
+      toast.error("At least one category is required.");
+      return;
+    }
+    setForm((prev) => ({
+      ...prev,
+      categories: prev.categories.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateCategory = (index: number, field: string, value: any) => {
+    setForm((prev) => ({
+      ...prev,
+      categories: prev.categories.map((c, i) =>
+        i === index ? { ...c, [field]: value } : c
+      ),
+    }));
   };
 
   if (isLoading) {
@@ -86,7 +131,7 @@ export default function EditEventPage() {
             <div>
               <CardTitle className="text-2xl font-bold">Edit Event: {event.name}</CardTitle>
               <CardDescription className="mt-1">
-                Update event information, capacity, date, or venue location.
+                Update event information, total seat capacity, date, or seat categories.
               </CardDescription>
             </div>
             <Badge variant="outline" className="px-3 py-1 text-xs">
@@ -131,18 +176,22 @@ export default function EditEventPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="date">Date & Time *</Label>
+                  <Label htmlFor="date">Date & Time (DD/MM/YYYY — 24h) *</Label>
                   <Input
                     id="date"
                     type="datetime-local"
+                    lang="en-GB"
                     required
                     value={form.date}
                     onChange={(e) => updateField("date", e.target.value)}
                     className="mt-1"
                   />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    European 24-hour format (DD/MM/YYYY HH:mm)
+                  </p>
                 </div>
                 <div>
-                  <Label htmlFor="totalSeats">Total Seats *</Label>
+                  <Label htmlFor="totalSeats">Total Capacity (Max Seats) *</Label>
                   <Input
                     id="totalSeats"
                     type="number"
@@ -152,6 +201,9 @@ export default function EditEventPage() {
                     onChange={(e) => updateField("totalSeats", Number(e.target.value))}
                     className="mt-1"
                   />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Maximum total seats available across all categories ({form.totalSeats} seats)
+                  </p>
                 </div>
               </div>
             </div>
@@ -205,6 +257,81 @@ export default function EditEventPage() {
                   onChange={(e) => updateField("basePrice", Number(e.target.value))}
                   className="mt-1 max-w-xs"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-sm text-primary uppercase tracking-wider flex items-center gap-1.5">
+                    <MdConfirmationNumber className="text-lg" /> Seat Categories & Price Multipliers
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Add new seat categories or modify existing ones without deleting them. Each category supports up to max total capacity ({form.totalSeats} seats).
+                  </p>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={addCategory} className="rounded-lg">
+                  <MdAdd className="mr-1" /> Add Category
+                </Button>
+              </div>
+
+              <div className="bg-muted/40 border p-3 rounded-xl text-xs space-y-1">
+                <div className="flex items-center gap-1 font-semibold text-foreground">
+                  <MdHelpOutline className="text-primary text-sm" /> Multiplier Calculation
+                </div>
+                <p className="text-muted-foreground leading-relaxed">
+                  Base Price: <strong>{form.basePrice || 0} BAM</strong> | Max Seats per Category: <strong>{form.totalSeats}</strong>
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="grid grid-cols-12 gap-3 text-xs font-semibold text-muted-foreground px-1">
+                  <div className="col-span-6">Category Name</div>
+                  <div className="col-span-4">Price Multiplier (Multiplier × Base)</div>
+                  <div className="col-span-2 text-right">Action</div>
+                </div>
+
+                {form.categories.map((cat, i) => {
+                  const finalPrice = (form.basePrice || 0) * (cat.multiplier || 1);
+                  return (
+                    <div key={i} className="grid grid-cols-12 gap-3 items-center bg-background border p-2.5 rounded-xl">
+                      <div className="col-span-6">
+                        <Input
+                          placeholder="e.g. Standard, VIP, Fan Pit"
+                          value={cat.name}
+                          onChange={(e) => updateCategory(i, "name", e.target.value)}
+                        />
+                      </div>
+                      <div className="col-span-4 flex items-center gap-2">
+                        <Input
+                          type="number"
+                          step="0.1"
+                          min="0.1"
+                          placeholder="1.0"
+                          value={cat.multiplier}
+                          onChange={(e) => updateCategory(i, "multiplier", Number(e.target.value))}
+                          className="w-20"
+                        />
+                        <span className="text-xs font-semibold text-foreground bg-muted px-2 py-1 rounded">
+                          = {finalPrice.toFixed(2)} BAM
+                        </span>
+                      </div>
+                      <div className="col-span-2 text-right">
+                        {form.categories.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeCategory(i)}
+                            className="text-destructive hover:bg-destructive/10"
+                          >
+                            <MdDelete className="text-base" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

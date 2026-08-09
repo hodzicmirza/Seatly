@@ -8,5 +8,6 @@ public record UpdateEventRequest(
     string City,
     string Country,
     decimal BasePrice,
-    int TotalSeats
+    int TotalSeats,
+    List<SeatCategoryDto>? Categories = null
 );

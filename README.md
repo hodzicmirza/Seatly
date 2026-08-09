@@ -1,34 +1,39 @@
 # Seatly — Full-Stack Event Booking System (.NET 10 & React)
 
-> Author / Student: Mirza Hodžić  
-> Course Project: Event Management & Ticket Booking System  
-> Tech Stack: .NET 10 C#, Entity Framework Core, PostgreSQL, Supabase Auth, React (Vite), Resend API, GitHub Actions, xUnit  
+> **Author / Student:** Mirza Hodžić  
+> **Course Project:** Event Management & Ticket Booking System  
+> **Tech Stack:** .NET 10 C#, Entity Framework Core, PostgreSQL (Supabase), Supabase Auth, React 18 (Vite), Resend API, GitHub Actions, xUnit  
+> **Live Web App:** [https://seatly.hodzicmirza.com](https://seatly.hodzicmirza.com)  
+> **Live API Backend:** [https://seatlybackend.onrender.com](https://seatlybackend.onrender.com)  
 
 ---
 
 ## 1. Project Overview
 
-Seatly is a high-performance full-stack web application developed for managing events (concerts, conferences) and booking seats in real-time.
+**Seatly** is a state-of-the-art, full-stack event management and real-time ticket booking web application. It enables organizers and administrators to create and update events, manage ticket categories and seat capacities, while providing customers with a seamless ticket purchasing experience featuring dynamic discount strategies and digital QR code email tickets.
 
-Key Features:
-* Dynamic ticket pricing using seat category multipliers and discount strategies.
-* Base64 QR code generation for digital event tickets.
-* Automated email ticket dispatch via Resend API with embedded QR code confirmation.
-* Automated background service for releasing expired pending bookings.
-* 24/7 keep-alive automation via GitHub Actions to eliminate Render free tier cold starts.
-* High-performance reads via In-Memory Caching and PostgreSQL B-Tree database indexes.
-* Fully containerized Docker deployment on Render, Vercel frontend hosting, and Cloudflare DNS management.
+### Key Features & UX Highlights:
+* **Dynamic Seat Category & Price Multiplier Management:** Event creators can define and update multiple seat categories (e.g. Standard, VIP, Fan Pit) with custom price multipliers relative to the base ticket price.
+* **Smart Discount Calculation:** Automated discount evaluation using strategy patterns (15% Bulk Discount for 5+ seats, Early Bird 10%, VIP 20%).
+* **Base64 Digital QR Ticket Generation:** Instant digital QR ticket creation upon booking confirmation, downloadable in PNG format.
+* **Automated Email Dispatch (Resend API):** Production-ready HTML email notifications with embedded QR code tickets dispatched automatically upon booking confirmation, as well as instant cancellation notifications.
+* **Interactive Frontend Workflows:**
+  * **Automatic Navigation:** Successful ticket purchases immediately redirect users back to the main event overview.
+  * **Confirmation Modal Dialogs:** Interactive modal prompt before cancelling any booking to prevent accidental cancellations.
+  * **European Date & Time Formatting:** Displays and inputs date/time in standard European 24-hour format (`DD/MM/YYYY HH:mm`).
+* **Automated Expired Booking Cleanup:** Background worker automatically cancels pending reservations older than 15 minutes, restoring seat availability.
+* **24/7 Keep-Alive Infrastructure:** GitHub Actions cron workflow (`.github/workflows/keep_alive.yml`) prevents Render free-tier instances from cold starting by pinging the backend API every 10 minutes.
 
 ---
 
-## 2. Architecture (Clean Architecture / Onion Pattern)
+## 2. Architecture & Design Principles
 
-The project follows Clean Architecture principles with strict boundary separation:
+Seatly strictly follows **Clean Architecture (Onion Architecture)** principles to decouple core domain rules from database infrastructure and API frameworks:
 
 ```
 Seatly Solution Structure:
  ├── src/
- │    ├── Seatly.Domain         (Core: Entities, Value Objects, Enums, Factories)
+ │    ├── Seatly.Domain         (Core: Entities, Value Objects, Enums, Exceptions)
  │    ├── Seatly.Application    (Business Logic: DTOs, Services, Discount Strategies)
  │    ├── Seatly.Infrastructure (Data: AppDbContext, Repositories, QrCode, Resend Email)
  │    └── Seatly.API            (Entry Point: Controllers, Middleware, BackgroundServices)
@@ -38,82 +43,64 @@ Seatly Solution Structure:
       └── Seatly.Tests          (xUnit Unit Tests)
 ```
 
-### Layer Responsibilities:
+### Layer Breakdown:
 
-#### 1. Seatly.Domain
-* Pure C# domain logic with zero external framework dependencies.
-* Entities: Event (abstract base class), Concert, Conference, Booking, User.
-* Value Objects: Money (amount + currency BAM), Address (street, city, country), SeatCategory (name + multiplier).
-* Enums: UserRole (Customer, Admin, Organizer), BookingStatus (Pending, Confirmed, Cancelled, Used), EventType.
+#### 1. `Seatly.Domain`
+* Pure C# domain model with zero external dependencies.
+* **Entities:** `Event` (abstract base class), `Concert`, `Conference`, `Booking`, `User`.
+* **Value Objects:** `Money` (amount + currency), `Address` (street, city, country), `SeatCategory` (name + multiplier).
+* **Enums:** `UserRole` (`Customer`, `Admin`, `Organizer`), `BookingStatus` (`Pending`, `Confirmed`, `Cancelled`, `Used`), `EventType`.
 
-#### 2. Seatly.Application
-* Use case implementations via service interfaces (IEventService, IBookingService, IUserService) and DTO records.
-* Discount calculation algorithm via Strategy Pattern.
-* In-Memory Caching in EventService.
+#### 2. `Seatly.Application`
+* Use-case orchestrations via service contracts (`IEventService`, `IBookingService`, `IUserService`) and record-based DTOs.
+* **Discount System:** Strategy Pattern (`IDiscountStrategy`) for extensible price calculations.
+* **In-Memory Caching:** High-throughput read performance via `IMemoryCache` with automatic cache invalidation upon mutation.
 
-#### 3. Seatly.Infrastructure
-* Database access via Entity Framework Core 10 and Npgsql PostgreSQL provider.
-* AppDbContext: Model configuration, value object mappings, and database indexes.
-* Repositories: EventRepository, BookingRepository, UserRepository.
-* Infrastructure Services: QrCodeService (QR code image generation), EmailService (Resend HTTP REST integration for HTML ticket delivery).
+#### 3. `Seatly.Infrastructure`
+* **Data Access:** Entity Framework Core 10 with Npgsql provider for Supabase PostgreSQL.
+* **Thread Safety & Entity Tracking:** Tracked query execution for domain entity updates/cancellations to prevent EF Core owned-collection tracking issues.
+* **Repositories:** `EventRepository`, `BookingRepository`, `UserRepository`.
+* **Services:** `QrCodeService` (SkiaSharp-based PNG generation), `EmailService` (Resend HTTP REST integration).
 
-#### 4. Seatly.API
-* REST Controllers (EventsController, BookingsController, UsersController).
-* ExceptionMiddleware for global error handling and standard JSON error responses.
-* ExpiredBookingCleanupService (IHostedService background process).
+#### 4. `Seatly.API`
+* REST controllers (`EventsController`, `BookingsController`, `UsersController`).
+* Global exception handling middleware for uniform JSON responses.
+* `ExpiredBookingCleanupService` (`IHostedService`) background process.
 
 ---
 
 ## 3. Design Patterns Applied
 
-### A. Strategy Pattern (IDiscountStrategy)
-Encapsulates discount logic to satisfy the Open/Closed Principle. Adding a new discount type does not require modifying existing booking code.
+### A. Strategy Pattern (`IDiscountStrategy`)
+Provides an open/closed structure for calculating ticket discounts without modifying core domain logic:
+* `EarlyBirdDiscount`: 10% discount for bookings made >30 days in advance.
+* `VIPDiscount`: 20% discount for VIP account holders.
+* `BulkDiscount`: 15% discount applied automatically when reserving 5 or more seats.
 
-* Interface: IDiscountStrategy with CalculateDiscount(...) method.
-* Concrete Strategies:
-  1. EarlyBirdDiscount: 10% discount if booked more than 30 days before event date.
-  2. VIPDiscount: 20% discount for users with VIP role.
-  3. BulkDiscount: 15% discount for reservations of 5 or more seats.
-
-### B. Factory Pattern (EventFactory)
-Encapsulates object instantiation logic for Concert and Conference types based on EventType.
+### B. Factory Pattern (`EventFactory`)
+Simplifies creation of specialized event types (`Concert`, `Conference`) based on `EventType`.
 
 ### C. Repository & Unit of Work Pattern
-* Repository Pattern: Abstracts database queries away from business services. Read queries utilize .AsNoTracking() for high throughput.
-* Unit of Work Pattern (IUnitOfWork): Ensures atomic transactions across multiple repositories via SaveChangesAsync().
+* **Repository Pattern:** Abstracts EF Core database interactions. Read queries utilize `.AsNoTracking()` for performance while write operations track entities.
+* **Unit of Work Pattern (`IUnitOfWork`):** Guarantees transaction atomicity across multiple repository operations via `SaveChangesAsync()`.
 
 ---
 
-## 4. Performance & Caching (IMemoryCache & Indexing)
-
-1. In-Memory Caching (IMemoryCache):
-   - EventService caches the full list of events and individual event details for 30 seconds.
-   - Cache invalidation occurs automatically when an Admin creates, updates, or deletes an event.
-2. PostgreSQL Database Indexes:
-   - Indexes configured on high-cardinality search/filter fields (Booking.UserId, Booking.EventId, Booking.Status, Event.Date).
-
----
-
-## 5. Background Services
-
-* ExpiredBookingCleanupService: Inherits from BackgroundService. Runs periodically every 2 minutes to scan for Pending bookings older than 15 minutes, automatically updating their status to Cancelled and freeing allocated seats.
-
----
-
-## 6. Production Infrastructure & Cloud Deployment
+## 4. Production Infrastructure & Cloud Deployment
 
 ### A. Backend Deployment (Render & Docker)
-* **Containerization:** The .NET 10 Web API is containerized using a multi-stage Dockerfile (`mcr.microsoft.com/dotnet/sdk:10.0` for build, `aspnet:10.0` for runtime) exposing port `8080`.
-* **Database Connectivity (IPv4 Session Pooling):** Render free instances support outbound IPv4 traffic. Connection to Supabase PostgreSQL is established via Supabase Session Pooler to resolve IPv6 routing limitations.
-* **Email Service:** Integrates Resend API for sending HTML booking confirmation emails containing embedded Base64 QR code tickets.
-* **24/7 Availability & Cold-Start Prevention:** Render free tier web services automatically spin down after 15 minutes of inactivity. To eliminate cold start latency and ensure instant responses for incoming requests, a GitHub Actions cron workflow (`.github/workflows/keep_alive.yml`) executes every 10 minutes to ping the backend REST API (`https://seatlybackend.onrender.com/api/events`):
+* **Multi-Stage Dockerfile:** Built on `mcr.microsoft.com/dotnet/sdk:10.0` and deployed on `aspnet:10.0` runtime on Render exposing port `8080`.
+* **PostgreSQL Session Pooling:** Connects to Supabase PostgreSQL via IPv4 Session Pooler (`aws-0-eu-central-1.pooler.supabase.com:5432`).
+* **Email Service:** Resend API integration for automated email notifications.
+
+### B. 24/7 Availability (GitHub Actions Keep-Alive Workflow)
+Render free instances spin down after 15 minutes of inactivity. To eliminate spin-up delays (up to 50 seconds), a GitHub Actions workflow (`.github/workflows/keep_alive.yml`) pings the backend every 10 minutes:
 
 ```yaml
 name: Render Backend Keep-Alive
 
 on:
   schedule:
-    # Runs every 10 minutes to prevent Render free instance from spinning down
     - cron: '*/10 * * * *'
   workflow_dispatch:
 
@@ -121,43 +108,44 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Render Backend Health Endpoint
+      - name: Ping Render Backend Endpoint
         run: |
           curl -s -o /dev/null -w "%{http_code}" https://seatlybackend.onrender.com/api/events
 ```
 
-
-### B. Frontend Deployment (Vercel)
-* **Framework:** React 18 + Vite SPA deployed on Vercel Edge Network.
-* **Single Page Application Rewrites:** `vercel.json` maps all incoming routes `/(.*)` to `/index.html` to allow client-side routing via React Router DOM.
-
-### C. Custom Domain & Cloudflare DNS Management
-* **Custom Domain:** Managed via Cloudflare DNS.
-* **DNS Records:** CNAME Flattening pointing subdomain traffic to Vercel production edge servers (`cname.vercel-dns.com`).
-* **Supabase OAuth URL Configuration:**
-  - `Site URL` and `Redirect URLs` configured to ensure seamless OAuth (Google/GitHub) authentication flows.
+### C. Frontend Hosting (Vercel & Cloudflare)
+* **Vercel SPA Hosting:** React 18 single-page application configured with `vercel.json` rewrite rules for client-side routing.
+* **Cloudflare DNS:** SSL/TLS encryption and CNAME flattening pointing `seatly.hodzicmirza.com` to Vercel edge nodes.
 
 ---
 
-## 7. How to Run & Test Locally
+## 5. Local Setup & Execution Instructions
 
-### Running Backend API:
+### Prerequisites:
+* [.NET 10 SDK](https://dotnet.microsoft.com/)
+* [Node.js v18+](https://nodejs.org/)
+
+### 1. Run Backend Web API:
 ```bash
 cd src/Seatly.API
 dotnet run
 ```
-API available at: http://localhost:5051 (Swagger UI at http://localhost:5051/swagger).
+> API available at: `http://localhost:5051` (Swagger UI at `http://localhost:5051/swagger`).
 
-### Running Frontend App:
+### 2. Run Frontend Web App:
 ```bash
 cd Frontend
 npm install
 npm run dev
 ```
-Frontend available at: http://localhost:5173.
+> Web application available at: `http://localhost:5173`.
 
-### Running Unit Tests:
+### 3. Execute Unit Test Suite:
 ```bash
 cd tests/Seatly.Tests
 dotnet test
 ```
+
+---
+
+*Developed by Mirza Hodžić — 2026*

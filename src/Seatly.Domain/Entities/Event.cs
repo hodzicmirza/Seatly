@@ -95,4 +95,13 @@ public abstract class Event
         this.BasePrice = basePrice;
         this.TotalSeats = totalSeats;
     }
+
+    public void UpdateSeatCategories(List<SeatCategory> categories)
+    {
+        if (categories == null || !categories.Any())
+        {
+            throw new DomainException("At least one seat category is required.");
+        }
+        this.SeatCategories = categories;
+    }
 }

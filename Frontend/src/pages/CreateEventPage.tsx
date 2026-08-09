@@ -145,15 +145,19 @@ export default function CreateEventPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="date">Date & Time *</Label>
+                  <Label htmlFor="date">Date & Time</Label>
                   <Input
                     id="date"
                     type="datetime-local"
+                    lang="en-GB"
                     required
                     value={form.date}
                     onChange={(e) => updateField("date", e.target.value)}
                     className="mt-1"
                   />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    European 24-hour format (DD/MM/YYYY HH:mm)
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="totalSeats">Total Capacity (Seats) *</Label>

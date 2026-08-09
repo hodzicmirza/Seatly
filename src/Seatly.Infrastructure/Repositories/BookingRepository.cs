@@ -16,7 +16,6 @@ public class BookingRepository : IBookingRepository
     {
         return await _context
             .Bookings
-            .AsNoTracking()
             .Include(b => b.Event)
             .Include(b => b.User)
             .FirstOrDefaultAsync(b => b.Id == id);

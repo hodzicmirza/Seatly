@@ -16,7 +16,6 @@ public class EventRepository : IEventRepository
     public async Task<Event?> GetByIdAsync(Guid id)
     {
         return await _context.Events
-            .AsNoTracking()
             .FirstOrDefaultAsync(e => e.Id == id);
     }
 
