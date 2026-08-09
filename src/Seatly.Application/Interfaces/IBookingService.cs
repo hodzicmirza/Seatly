@@ -17,5 +17,9 @@ public interface IBookingService
 
     Task<Result<IEnumerable<BookingResponse>>> GetUserBookingsAsync(string supabaseUserId);
 
+    Task<Result<IEnumerable<BookingResponse>>> GetAllBookingsAsync();
+
+    Task<Result> DeleteBookingAdminAsync(Guid bookingId);
+
     Task<Result> MarkBookingAsUsedAsync(Guid bookingId, string qrCodeData);
 }

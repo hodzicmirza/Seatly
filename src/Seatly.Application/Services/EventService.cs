@@ -1,76 +1,70 @@
+using Microsoft.Extensions.Caching.Memory;
 using Seatly.Application.Common;
 using Seatly.Application.DTOs.Events;
 using Seatly.Application.Interfaces;
 using Seatly.Domain.Entities;
 using Seatly.Domain.Enums;
 using Seatly.Domain.Exceptions;
+using Seatly.Domain.Factories;
 using Seatly.Domain.Interfaces;
 using Seatly.Domain.ValueObjects;
 
 namespace Seatly.Application.Services;
 
+// Application Service: Manages event creation, search, updates, deletion, and caching.
+// Utilizes IMemoryCache to reduce database round-trips for high-frequency GET requests.
 public class EventService : IEventService
 {
     private readonly IEventRepository _eventRepository;
     private readonly IBookingRepository _bookingRepository;
-    IUnitOfWork _unitOfWork;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMemoryCache _cache;
+    private const string AllEventsCacheKey = "AllEventsCacheKey";
 
     public EventService(
         IEventRepository eventRepository,
         IBookingRepository bookingRepository,
-        IUnitOfWork unitOfWork
+        IUnitOfWork unitOfWork,
+        IMemoryCache cache
     )
     {
-        this._eventRepository = eventRepository;
-        this._bookingRepository = bookingRepository;
-        this._unitOfWork = unitOfWork;
+        _eventRepository = eventRepository;
+        _bookingRepository = bookingRepository;
+        _unitOfWork = unitOfWork;
+        _cache = cache;
     }
 
     public async Task<Result<EventResponse>> CreateEventAsync(CreateEventRequest request)
     {
         try
         {
+            var eventDate = DateTime.SpecifyKind(request.Date, DateTimeKind.Utc);
             var address = new Address(request.Street, request.City, request.Country);
             var categories = request
                 .Categories.Select(c => new SeatCategory(c.Name, c.Multiplier))
                 .ToList();
             var money = new Money(request.BasePrice);
 
-            Event newEvent = request.EventType switch
-            {
-                EventType.Concert => new Concert(
-                    request.Name,
-                    request.Description,
-                    request.Date,
-                    address,
-                    money,
-                    request.TotalSeats,
-                    categories,
-                    request.Headliner ?? "TBA",
-                    request.SupportAct
-                ),
+            // Instantiate concrete event using EventFactory pattern
+            Event newEvent = EventFactory.CreateEvent(
+                request.Name,
+                request.Description,
+                eventDate,
+                address,
+                money,
+                request.TotalSeats,
+                categories,
+                request.EventType,
+                request.Headliner ?? request.Organizer
+            );
+            await _eventRepository.AddAsync(newEvent);
+            await _unitOfWork.SaveChangesAsync();
 
-                EventType.Conference => new Conference(
-                    request.Name,
-                    request.Description,
-                    request.Date,
-                    address,
-                    money,
-                    request.TotalSeats,
-                    categories,
-                    request.Organizer ?? "TBA",
-                    request.KeynoteSpeaker
-                ),
+            // Invalidate full events list cache on creation so users immediately see the new event
+            _cache.Remove(AllEventsCacheKey);
 
-                _ => throw new DomainException(
-                    $"Event type {request.EventType} is not yet supported."
-                ),
-            };
-            await this._eventRepository.AddAsync(newEvent);
-            await this._unitOfWork.SaveChangesAsync();
-
-            var respone = await MapToResponseAsync(newEvent);
-            return Result<EventResponse>.Success(respone);
+            var response = await MapToResponseAsync(newEvent);
+            return Result<EventResponse>.Success(response);
         }
         catch (DomainException ex)
         {
@@ -80,22 +74,44 @@ public class EventService : IEventService
 
     public async Task<Result<IEnumerable<EventResponse>>> GetAllEventsAsync()
     {
-        var events = await this._eventRepository.GetAllAsync();
-        var tasks = events.Select(MapToResponseAsync);
-        var responses = await Task.WhenAll(tasks);
-        return Result<IEnumerable<EventResponse>>.Success(responses);
+        // Check if event list is cached in server memory to bypass DB query
+        if (!_cache.TryGetValue(AllEventsCacheKey, out IEnumerable<EventResponse>? cachedEvents) || cachedEvents == null)
+        {
+            var events = await _eventRepository.GetAllAsync();
+            var tasks = events.Select(MapToResponseAsync);
+            cachedEvents = await Task.WhenAll(tasks);
+
+            // Store in IMemoryCache with 30s TTL and 10s sliding expiration
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromSeconds(30))
+                .SetSlidingExpiration(TimeSpan.FromSeconds(10));
+
+            _cache.Set(AllEventsCacheKey, cachedEvents, cacheEntryOptions);
+        }
+
+        return Result<IEnumerable<EventResponse>>.Success(cachedEvents);
     }
 
     public async Task<Result<EventResponse>> GetEventByIdAsync(Guid id)
     {
-        var @event = await this._eventRepository.GetByIdAsync(id);
-        if (@event == null)
+        var cacheKey = $"EventById_{id}";
+        // Check single event cache entry before querying PostgreSQL
+        if (!_cache.TryGetValue(cacheKey, out EventResponse? cachedEvent) || cachedEvent == null)
         {
-            return Result<EventResponse>.Failure("Event not found.");
-        }
-        var respone = await MapToResponseAsync(@event);
+            var @event = await _eventRepository.GetByIdAsync(id);
+            if (@event == null)
+            {
+                return Result<EventResponse>.Failure("Event not found.");
+            }
+            cachedEvent = await MapToResponseAsync(@event);
 
-        return Result<EventResponse>.Success(respone);
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromSeconds(30));
+
+            _cache.Set(cacheKey, cachedEvent, cacheEntryOptions);
+        }
+
+        return Result<EventResponse>.Success(cachedEvent);
     }
 
     public async Task<Result<IEnumerable<EventResponse>>> SearchEventsAsync(
@@ -105,10 +121,62 @@ public class EventService : IEventService
         string? eventType
     )
     {
-        var events = this._eventRepository.SearchAsync(name, from, to, eventType);
+        var utcFrom = from.HasValue ? DateTime.SpecifyKind(from.Value, DateTimeKind.Utc) : (DateTime?)null;
+        var utcTo = to.HasValue ? DateTime.SpecifyKind(to.Value, DateTimeKind.Utc) : (DateTime?)null;
+
+        var events = await _eventRepository.SearchAsync(name, utcFrom, utcTo, eventType);
         var tasks = events.Select(MapToResponseAsync);
         var responses = await Task.WhenAll(tasks);
         return Result<IEnumerable<EventResponse>>.Success(responses);
+    }
+
+    public async Task<Result<EventResponse>> UpdateEventAsync(Guid id, UpdateEventRequest request)
+    {
+        var @event = await _eventRepository.GetByIdAsync(id);
+        if (@event == null)
+        {
+            return Result<EventResponse>.Failure("Event not found.");
+        }
+
+        try
+        {
+            var eventDate = DateTime.SpecifyKind(request.Date, DateTimeKind.Utc);
+            var address = new Address(request.Street, request.City, request.Country);
+            var money = new Money(request.BasePrice);
+
+            @event.UpdateDetails(request.Name, request.Description, eventDate, address, money, request.TotalSeats);
+            await _eventRepository.UpdateAsync(@event);
+            await _unitOfWork.SaveChangesAsync();
+
+            // Evict stale cached data for this specific event and full list
+            _cache.Remove(AllEventsCacheKey);
+            _cache.Remove($"EventById_{id}");
+
+            var response = await MapToResponseAsync(@event);
+            return Result<EventResponse>.Success(response);
+        }
+        catch (DomainException ex)
+        {
+            return Result<EventResponse>.Failure(ex.Message);
+        }
+    }
+
+    public async Task<Result> DeleteEventAsync(Guid id)
+    {
+        var @event = await _eventRepository.GetByIdAsync(id);
+        if (@event == null)
+        {
+            return Result.Failure("Event not found.");
+        }
+
+        await _eventRepository.DeleteAsync(id);
+        await _unitOfWork.SaveChangesAsync();
+
+        // Evict deleted event from cache
+        _cache.Remove(AllEventsCacheKey);
+        _cache.Remove($"EventById_{id}");
+
+        return Result.Success();
     }
 
     private async Task<EventResponse> MapToResponseAsync(Event @event)

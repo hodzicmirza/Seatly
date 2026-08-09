@@ -1,4 +1,4 @@
-﻿using Seatly.Domain.Enums;
+using Seatly.Domain.Enums;
 using Seatly.Domain.Exceptions;
 using Seatly.Domain.ValueObjects;
 
@@ -73,4 +73,26 @@ public abstract class Event
 
     public bool HasAvailableSeats(int requestedSeats, int bookedSeats) =>
         AvailableSeats(bookedSeats) >= requestedSeats;
+
+    public void UpdateDetails(
+        string name,
+        string description,
+        DateTime date,
+        Address location,
+        Money basePrice,
+        int totalSeats
+    )
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException("Event name is required.");
+        if (totalSeats <= 0)
+            throw new DomainException("Total seats must be greater than 0.");
+
+        this.Name = name;
+        this.Description = description;
+        this.Date = date;
+        this.Location = location;
+        this.BasePrice = basePrice;
+        this.TotalSeats = totalSeats;
+    }
 }

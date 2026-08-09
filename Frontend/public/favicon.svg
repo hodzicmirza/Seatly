@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="ticketGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#ticketGrad)" />
+  <path d="M128 160h256c17.7 0 32 14.3 32 32v32c-17.7 0-32 14.3-32 32s14.3 32 32 32v32c0 17.7-14.3 32-32 32H128c-17.7 0-32-14.3-32-32v-32c17.7 0 32-14.3 32-32s-14.3-32-32-32v-32c0-17.7 14.3-32 32-32z" fill="#ffffff" />
+  <path d="M216 160v192" stroke="#7c3aed" stroke-width="16" stroke-dasharray="16 16" stroke-linecap="round" />
+  <circle cx="312" cy="256" r="32" fill="#7c3aed" />
+</svg>

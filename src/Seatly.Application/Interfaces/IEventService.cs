@@ -14,4 +14,6 @@ public interface IEventService
         DateTime? to,
         string? eventType
     );
+    Task<Result<EventResponse>> UpdateEventAsync(Guid id, UpdateEventRequest request);
+    Task<Result> DeleteEventAsync(Guid id);
 }

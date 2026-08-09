@@ -5,4 +5,7 @@
     <Project Path="src/Seatly.Domain/Seatly.Domain.csproj" />
     <Project Path="src/Seatly.Infrastructure/Seatly.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Seatly.Tests/Seatly.Tests.csproj" />
+  </Folder>
 </Solution>

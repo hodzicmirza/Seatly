@@ -12,8 +12,8 @@ public class Booking
 
     public int NumberOfSeats { get; private set; }
 
-    public SeatCategory SelectedCategory { get; private set; }
-    public Money TotalPrice { get; private set; }
+    public SeatCategory SelectedCategory { get; private set; } = null!;
+    public Money TotalPrice { get; private set; } = null!;
     public BookingStatus Status { get; private set; }
     public string? QrCodeData { get; private set; }
     public DateTime CreatedAt { get; private set; }
@@ -62,7 +62,7 @@ public class Booking
 
         this.Status = BookingStatus.Confirmed;
         this.QrCodeData = qrCodeData;
-        this.CreatedAt = DateTime.UtcNow;
+        this.ConfirmedAt = DateTime.UtcNow;
     }
 
     public void Cancel()

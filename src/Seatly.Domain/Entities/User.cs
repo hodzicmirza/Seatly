@@ -10,7 +10,7 @@ public class User
     public string FullName { get; private set; } = null!;
     public string Email { get; private set; } = null!;
     public UserRole Role { get; private set; }
-    public DateTime CreatetAd { get; private set; }
+    public DateTime CreatedAt { get; private set; }
 
     private User() { }
 
@@ -35,7 +35,7 @@ public class User
         this.FullName = fullName;
         this.Email = email;
         this.Role = role;
-        this.CreatetAd = DateTime.UtcNow;
+        this.CreatedAt = DateTime.UtcNow;
     }
 
     public void UpdateProfile(string fullName, string email)

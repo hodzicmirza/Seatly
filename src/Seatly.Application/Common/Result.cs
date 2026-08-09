@@ -8,7 +8,7 @@ public class Result
 
     protected Result(bool isSuccess, string errorMessage)
     {
-        this.IsSuccess = IsSuccess;
+        this.IsSuccess = isSuccess;
         this.ErrorMessage = errorMessage;
     }
 
