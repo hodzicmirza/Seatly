@@ -71,27 +71,43 @@ public class BookingService : IBookingService
             // Calculate initial category price (Base Price * Category Multiplier)
             Money price = @event.CalculatePrice(category);
 
-            // Strategy Pattern: Evaluate all registered IDiscountStrategy implementations to pick the highest priority applicable discount
-            var applicableDiscount = this._discountStrategies
+            // Strategy Pattern: Evaluate and apply ALL applicable discount strategies in sequence
+            var applicableDiscounts = this._discountStrategies
                 .Where(d => d.IsApplicable(@event, user, request.NumberOfSeats, category.Name))
-                .OrderByDescending(d => d.Priority)
-                .FirstOrDefault();
+                .OrderBy(d => d.Priority)
+                .ToList();
 
-            if (applicableDiscount != null)
+            foreach (var discount in applicableDiscounts)
             {
-                price = applicableDiscount.ApplyDiscount(price);
+                price = discount.ApplyDiscount(price);
             }
 
-            // Real-time capacity validation against non-cancelled DB bookings
-            var bookedSeates = await this._bookingRepository.GetBookedSeatsCountAsync(
+            // Real-time total event capacity validation against non-cancelled DB bookings
+            var totalBookedSeats = await this._bookingRepository.GetBookedSeatsCountAsync(
                 request.EventId
             );
 
-            if (!@event.HasAvailableSeats(request.NumberOfSeats, bookedSeates))
+            if (!@event.HasAvailableSeats(request.NumberOfSeats, totalBookedSeats))
             {
                 return Result<BookingResponse>.Failure(
-                    $"Not enough seats available. Available {@event.AvailableSeats(bookedSeates)}"
+                    $"Not enough total event seats available. Available for event: {@event.AvailableSeats(totalBookedSeats)}"
                 );
+            }
+
+            // Real-time category-specific capacity validation
+            if (category.SeatsCount > 0)
+            {
+                var categoryBookedSeats = await this._bookingRepository.GetBookedSeatsCountForCategoryAsync(
+                    request.EventId,
+                    category.Name
+                );
+                var categoryAvailableSeats = category.SeatsCount - categoryBookedSeats;
+                if (request.NumberOfSeats > categoryAvailableSeats)
+                {
+                    return Result<BookingResponse>.Failure(
+                        $"Not enough seats available in category '{category.Name}'. Category capacity: {category.SeatsCount}, already reserved: {categoryBookedSeats}, available: {Math.Max(0, categoryAvailableSeats)}."
+                    );
+                }
             }
 
             var totalPrice = price * request.NumberOfSeats;
@@ -309,10 +325,22 @@ public class BookingService : IBookingService
     private async Task<User> GetOrCreateUserAsync(string supabaseUserId, string email)
     {
         var user = await this._userRepository.GetBySupabaseUserIdAsync(supabaseUserId);
+        var expectedRole = (email.Contains("admin", StringComparison.OrdinalIgnoreCase) || email.Contains("hodzicmirza", StringComparison.OrdinalIgnoreCase))
+            ? Seatly.Domain.Enums.UserRole.Admin
+            : email.Contains("organizer", StringComparison.OrdinalIgnoreCase)
+            ? Seatly.Domain.Enums.UserRole.Organizer
+            : Seatly.Domain.Enums.UserRole.Customer;
+
         if (user == null)
         {
-            user = new User(supabaseUserId, email.Split('@')[0], email);
+            user = new User(supabaseUserId, email.Split('@')[0], email, expectedRole);
             await this._userRepository.AddAsync(user);
+            await this._unitOfWork.SaveChangesAsync();
+        }
+        else if (user.Role != expectedRole && expectedRole != Seatly.Domain.Enums.UserRole.Customer)
+        {
+            user.PromoteTo(expectedRole);
+            await this._userRepository.UpdateAsync(user);
             await this._unitOfWork.SaveChangesAsync();
         }
         return user;

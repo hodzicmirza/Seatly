@@ -83,10 +83,36 @@ export default function EventDetailPage() {
   if (error || !event) return <p className="text-destructive">Event not found.</p>;
 
   const selectedCatObj = event.categories.find((c) => c.name === category);
-  const rawUnitPrice = selectedCatObj ? selectedCatObj.finalPrice : 0;
+  const baseCategoryPrice = selectedCatObj ? selectedCatObj.finalPrice : 0;
+  const maxCategorySeats = selectedCatObj?.seatsCount && selectedCatObj.seatsCount > 0 ? selectedCatObj.seatsCount : event.availableSeats;
+
+  // Stacking discount logic matching backend BookingService.cs
+  const isEarlyBird = new Date(event.date).getTime() > Date.now() + 7 * 24 * 3600 * 1000;
   const isBulkDiscount = seats >= 5;
-  const unitPrice = isBulkDiscount ? rawUnitPrice * 0.85 : rawUnitPrice;
-  const totalPrice = unitPrice * seats;
+  const isVipDiscount = dbUser?.role === "Admin" || dbUser?.role === "Organizer" || (category && category.toLowerCase().includes("vip"));
+
+  let discountedUnitPrice = baseCategoryPrice;
+  const appliedDiscounts: { name: string; percent: string; savedPerSeat: number }[] = [];
+
+  if (isEarlyBird) {
+    const savings = discountedUnitPrice * 0.10;
+    discountedUnitPrice *= 0.90;
+    appliedDiscounts.push({ name: "🐣 10% Early Bird", percent: "10%", savedPerSeat: savings });
+  }
+
+  if (isBulkDiscount) {
+    const savings = discountedUnitPrice * 0.15;
+    discountedUnitPrice *= 0.85;
+    appliedDiscounts.push({ name: "📦 15% Bulk Discount", percent: "15%", savedPerSeat: savings });
+  }
+
+  if (isVipDiscount) {
+    const savings = discountedUnitPrice * 0.20;
+    discountedUnitPrice *= 0.80;
+    appliedDiscounts.push({ name: "👑 20% VIP Member", percent: "20%", savedPerSeat: savings });
+  }
+
+  const totalPrice = discountedUnitPrice * seats;
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -258,37 +284,54 @@ export default function EventDetailPage() {
                   <Input
                     type="number"
                     min={1}
-                    max={event.availableSeats}
+                    max={Math.min(maxCategorySeats, event.availableSeats)}
                     value={seats}
                     onChange={(e) => setSeats(Number(e.target.value))}
                     className="mt-1"
                   />
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Available for event: {event.availableSeats} seats
-                  </p>
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-1">
+                    <span>Category Capacity: <strong>{maxCategorySeats} seats</strong></span>
+                    <span>Total Event Available: {event.availableSeats}</span>
+                  </div>
+                  {seats > maxCategorySeats && (
+                    <p className="text-xs text-red-600 font-semibold mt-1">
+                      ⚠️ Category '{category}' only has {maxCategorySeats} seats!
+                    </p>
+                  )}
                 </div>
 
-                {isBulkDiscount && (
-                  <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300 font-medium bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800">
-                    <MdCheckCircle className="text-lg text-emerald-600 dark:text-emerald-400" />
-                    <span>15% Bulk Discount applied for ordering {seats} seats!</span>
+                {appliedDiscounts.length > 0 && (
+                  <div className="space-y-1.5 bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                      <MdCheckCircle className="text-emerald-600 dark:text-emerald-400 text-sm" />
+                      Active Discounts Applied:
+                    </div>
+                    <ul className="text-xs text-emerald-700 dark:text-emerald-400 space-y-1 pl-5 list-disc">
+                      {appliedDiscounts.map((d) => (
+                        <li key={d.name}>
+                          <span className="font-semibold">{d.name}</span> (-{d.savedPerSeat.toFixed(2)} BAM/seat)
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
 
                 {category && (
-                  <div className="border-t pt-3 space-y-1 text-sm bg-muted/30 p-3 rounded-xl">
+                  <div className="border-t pt-3 space-y-1.5 text-sm bg-muted/30 p-3 rounded-xl">
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Category Price:</span>
-                      <span>{rawUnitPrice.toFixed(2)} BAM</span>
+                      <span>Base Category Price:</span>
+                      <span>{baseCategoryPrice.toFixed(2)} BAM</span>
                     </div>
-                    {isBulkDiscount && (
-                      <div className="flex justify-between text-emerald-600 font-medium">
-                        <span>Discount (15%):</span>
-                        <span>-{(rawUnitPrice * 0.15).toFixed(2)} BAM / seat</span>
+
+                    {appliedDiscounts.map((d) => (
+                      <div key={d.name} className="flex justify-between text-emerald-600 dark:text-emerald-400 font-medium text-xs">
+                        <span>{d.name}:</span>
+                        <span>-{d.savedPerSeat.toFixed(2)} BAM / seat</span>
                       </div>
-                    )}
-                    <div className="flex justify-between font-bold text-base pt-1 text-foreground">
-                      <span>Total ({seats} seats):</span>
+                    ))}
+
+                    <div className="flex justify-between font-bold text-base pt-2 border-t text-foreground">
+                      <span>Total ({seats} seat{seats > 1 ? "s" : ""}):</span>
                       <span className="text-primary">{totalPrice.toFixed(2)} BAM</span>
                     </div>
                   </div>
@@ -296,7 +339,7 @@ export default function EventDetailPage() {
 
                 <Button
                   className="w-full text-base py-6 font-semibold rounded-xl shadow-md"
-                  disabled={!category || seats < 1 || bookingMutation.isPending}
+                  disabled={!category || seats < 1 || seats > maxCategorySeats || bookingMutation.isPending}
                   onClick={() =>
                     bookingMutation.mutate({
                       eventId: event.id,

@@ -9,6 +9,7 @@ public interface IBookingRepository
     Task<IEnumerable<Booking>> GetByUserIdAsync(Guid userId);
     Task<IEnumerable<Booking>> GetByEventIdAsync(Guid eventId);
     Task<int> GetBookedSeatsCountAsync(Guid eventId);
+    Task<int> GetBookedSeatsCountForCategoryAsync(Guid eventId, string categoryName);
     Task AddAsync(Booking booking);
     Task UpdateAsync(Booking booking);
     Task DeleteAsync(Booking booking);

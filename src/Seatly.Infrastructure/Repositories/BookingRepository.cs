@@ -61,6 +61,16 @@ public class BookingRepository : IBookingRepository
             .SumAsync(b => b.NumberOfSeats);
     }
 
+    public async Task<int> GetBookedSeatsCountForCategoryAsync(Guid eventId, string categoryName)
+    {
+        var categoryLower = categoryName.ToLower();
+        return await _context
+            .Bookings
+            .AsNoTracking()
+            .Where(b => b.EventId == eventId && b.Status != BookingStatus.Cancelled && b.SelectedCategory.Name.ToLower() == categoryLower)
+            .SumAsync(b => b.NumberOfSeats);
+    }
+
     public async Task AddAsync(Booking booking) => await _context.Bookings.AddAsync(booking);
 
     public Task UpdateAsync(Booking booking)
